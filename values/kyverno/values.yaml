@@ -1,0 +1,49 @@
+crds:
+  install: true
+admissionController:
+  replicas: 3
+  topologySpreadConstraints:
+    - maxSkew: 1
+      minDomains: 2
+      topologyKey: "topology.kubernetes.io/zone"
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: admission-controller
+    - maxSkew: 1
+      minDomains: 3
+      topologyKey: "kubernetes.io/hostname"
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: admission-controller
+backgroundController:
+  replicas: 2
+  topologySpreadConstraints:
+    - maxSkew: 1
+      minDomains: 2
+      topologyKey: "topology.kubernetes.io/zone"
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: background-controller
+    - maxSkew: 1
+      minDomains: 2
+      topologyKey: "kubernetes.io/hostname"
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: background-controller
+cleanupController:
+  replicas: 2
+reportsController:
+  replicas: 2
+
+global:
+  tolerations:
+  - effect: NoSchedule
+    key: CriticalAddonsOnly
+    value: "true"
+  - effect: NoSchedule
+    key: karpenter.sh/controller
+    value: "true"
