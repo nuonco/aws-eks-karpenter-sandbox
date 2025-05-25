@@ -65,5 +65,6 @@ resource "helm_release" "ebs_csi" {
   depends_on = [
     module.ebs_csi_irsa,
     module.eks,
+    resource.aws_security_group_rule.runner_cluster_access,
   ]
 }

@@ -46,6 +46,7 @@ module "karpenter" {
 
   depends_on = [
     module.eks,
+    resource.aws_security_group_rule.runner_cluster_access,
   ]
 }
 
