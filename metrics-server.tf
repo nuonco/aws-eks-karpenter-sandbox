@@ -27,6 +27,7 @@ resource "helm_release" "metrics_server" {
   ]
 
   depends_on = [
-    helm_release.ebs_csi
+    module.eks,
+    resource.aws_security_group_rule.runner_cluster_access,
   ]
 }
