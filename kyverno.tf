@@ -26,7 +26,8 @@ resource "helm_release" "kyverno" {
   ]
 
   depends_on = [
-    helm_release.metrics_server
+    module.eks,
+    resource.aws_security_group_rule.runner_cluster_access,
   ]
 }
 
