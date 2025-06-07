@@ -149,6 +149,22 @@ resource "helm_release" "karpenter" {
 # EC2NodeClass: default
 # https://karpenter.sh/v1.0/concepts/nodeclasses/
 #
+locals {
+  # https://karpenter.sh/v1.0/concepts/nodeclasses/#specamiselectorterms
+  default_nodeclass_default_ami_selector_terms = [
+    {
+      alias = "al2@latest"
+    }
+  ]
+  # terraform's dumb type system gets confused if we use a ternary (x ? x : y)
+  # to choose between these, so we have do trick it with a conditional list
+  # index. bad terraform.
+  default_nodeclass_ami_selector_terms = [
+    var.karpenter_default_nodeclass_ami_selector_terms,
+    local.default_nodeclass_default_ami_selector_terms,
+  ][var.karpenter_default_nodeclass_ami_selector_terms != null ? 0 : 1]
+}
+
 resource "kubectl_manifest" "karpenter_ec2nodeclass_default" {
   provider = kubectl.main
 
@@ -160,13 +176,7 @@ resource "kubectl_manifest" "karpenter_ec2nodeclass_default" {
     }
     spec = {
       instanceProfile = "KarpenterNodeInstanceProfile-${local.karpenter.cluster_name}"
-
-      # https://karpenter.sh/v1.0/concepts/nodeclasses/#specamiselectorterms
-      amiSelectorTerms = [
-        {
-          alias = "al2@latest"
-        }
-      ]
+      amiSelectorTerms = local.default_nodeclass_ami_selector_terms
       subnetSelectorTerms = [
         {
           tags = {
@@ -181,9 +191,7 @@ resource "kubectl_manifest" "karpenter_ec2nodeclass_default" {
           }
         }
       ]
-      tags = {
-        "karpenter.sh/discovery" = local.karpenter.discovery_value
-      }
+      tags = local.tags
     }
   })
 
@@ -195,6 +203,65 @@ resource "kubectl_manifest" "karpenter_ec2nodeclass_default" {
 #
 # nodepool: default
 #
+locals {
+  default_nodepool_default_spec = {
+    limits = {
+      cpu    = 100
+      memory = "200Gi"
+    }
+    template = {
+      spec = {
+        expireAfter = "732h"
+        nodeClassRef = {
+          group = "karpenter.k8s.aws"
+          kind  = "EC2NodeClass"
+          name  = "default"
+        }
+        requirements = [
+          {
+            key      = "karpenter.sh/capacity-type"
+            operator = "In"
+            values = [
+              "on-demand",
+            ]
+          },
+          {
+            "key"      = "node.kubernetes.io/instance-type"
+            "operator" = "In"
+            "values"   = [var.default_instance_type]
+          },
+          {
+            key      = "topology.kubernetes.io/zone"
+            operator = "In"
+            values = [ // this requires refinement
+              "${var.region}a",
+              "${var.region}b",
+              "${var.region}c",
+            ]
+          },
+        ]
+      }
+    }
+    # https://karpenter.sh/v1.0/concepts/disruption/
+    disruption = {
+      consolidationPolicy = "WhenEmptyOrUnderutilized"
+      consolidateAfter    = "5m"
+      budgets = [
+        // only allow one node to be disrupted at once
+        {
+          nodes = "1",
+        },
+      ]
+    }
+  }
+  # terraform's dumb type system gets confused if we use a ternary (x ? x : y)
+  # to choose between these, so we have do trick it with a conditional list
+  # index. bad terraform.
+  default_nodepool_spec = [
+    var.karpenter_default_nodepool_spec,
+    local.default_nodepool_default_spec,
+  ][var.karpenter_default_nodepool_spec != null ? 0 : 1]
+}
 resource "kubectl_manifest" "karpenter_nodepool_default" {
   provider = kubectl.main
 
@@ -204,61 +271,11 @@ resource "kubectl_manifest" "karpenter_nodepool_default" {
     metadata = {
       name = "default"
     }
-    spec = {
-      limits = {
-        cpu    = 100
-        memory = "200Gi"
-      }
-      template = {
-        spec = {
-          expireAfter = "732h"
-          nodeClassRef = {
-            group = "karpenter.k8s.aws"
-            kind  = "EC2NodeClass"
-            name  = "default"
-          }
-          requirements = [
-            {
-              key      = "karpenter.sh/capacity-type"
-              operator = "In"
-              values = [
-                "on-demand",
-              ]
-            },
-            {
-              "key"      = "node.kubernetes.io/instance-type"
-              "operator" = "In"
-              "values"   = [var.default_instance_type]
-            },
-            {
-              key      = "topology.kubernetes.io/zone"
-              operator = "In"
-              values = [ // this requires refinement
-                "${var.region}a",
-                "${var.region}b",
-                "${var.region}c",
-              ]
-            },
-          ]
-        }
-      }
-      # https://karpenter.sh/v1.0/concepts/disruption/
-      disruption = {
-        consolidationPolicy = "WhenEmptyOrUnderutilized"
-        consolidateAfter    = "5m"
-        budgets = [
-          // only allow one node to be disrupted at once
-          {
-            nodes = "1",
-          },
-        ]
-      }
-    }
+    spec = local.default_nodepool_spec
   })
 
   depends_on = [
     kubectl_manifest.karpenter_ec2nodeclass_default,
     helm_release.karpenter,
-
   ]
 }

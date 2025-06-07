@@ -233,6 +233,17 @@ variable "default_instance_type" {
   description = "The EC2 instance type to use for the EKS cluster's default node group."
 }
 
+variable "karpenter_default_nodeclass_ami_selector_terms" {
+  type        = any
+  default     = null
+  description = "If specified, override the included `default` nodeclass AMI selector terms."
+}
+
+variable "karpenter_default_nodepool_spec" {
+  type        = any
+  default     = null
+  description = "If specified, override the included `default` nodepool spec."
+}
 
 variable "additional_tags" {
   type        = map(any)
