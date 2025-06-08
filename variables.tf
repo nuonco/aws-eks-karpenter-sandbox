@@ -233,6 +233,12 @@ variable "default_instance_type" {
   description = "The EC2 instance type to use for the EKS cluster's default node group."
 }
 
+variable "karpenter_replica_count" {
+  type        = number
+  default     = 2
+  description = "The number of replicas for the Karpenter controller."
+}
+
 variable "karpenter_default_nodeclass_ami_selector_terms" {
   type        = any
   default     = null

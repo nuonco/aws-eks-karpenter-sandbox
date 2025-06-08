@@ -93,7 +93,7 @@ resource "helm_release" "karpenter" {
   # https://github.com/aws/karpenter-provider-aws/blob/v1.2.2/charts/karpenter/values.yaml
   values = [
     yamlencode({
-      replicas : 1
+      replicas : var.karpenter_replica_count
       logLevel : "debug"
       settings : {
         clusterEndpoint : module.eks.cluster_endpoint
