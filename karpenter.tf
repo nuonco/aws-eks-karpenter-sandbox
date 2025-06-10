@@ -177,6 +177,11 @@ resource "kubectl_manifest" "karpenter_ec2nodeclass_default" {
     spec = {
       instanceProfile = "KarpenterNodeInstanceProfile-${local.karpenter.cluster_name}"
       amiSelectorTerms = local.default_nodeclass_ami_selector_terms
+      # without this, pods on karpenter nodes can't use the IAM node role
+      # https://github.com/aws/karpenter-provider-aws/issues/7548#issuecomment-2558191953
+      metadataOptions = {
+        httpPutResponseHopLimit = 2
+      }
       subnetSelectorTerms = [
         {
           tags = {
