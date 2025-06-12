@@ -115,3 +115,7 @@ output "karpenter" {
 
   }
 }
+
+output "additional_irsa" {
+  value = { for ai in module.additional_irsa : ai.iam_role_name => ai }
+}

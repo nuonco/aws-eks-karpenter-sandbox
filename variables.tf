@@ -163,9 +163,10 @@ variable "additional_access_entry" {
 # maintenance role RBAC
 variable "maintenance_cluster_role_rules_override" {
   type = list(object({
-    apiGroups = list(string),
-    resources = list(string),
-    verbs     = list(string)
+    apiGroups     = list(string),
+    resources     = list(string),
+    verbs         = list(string),
+    resourceNames = optional(list(string)),
   }))
   description = "A list of rules for the ClusterRole definition for the maintenance group. If this value is provided, these rules will be used instead."
   default     = []
@@ -176,6 +177,18 @@ variable "kyverno_policy_dir" {
   type        = string
   description = "Path to a directory with kyverno policy manifests."
   default     = "./kyverno-policies"
+}
+
+# additional IRSAs
+variable "additional_irsas" {
+  # name and serviceaccount are combined in oids.k8s.namespace_service_accounts as ["${var.namespace}:${serviceaccount}"]
+  type = list(object({
+    role_name       = string,
+    namespace       = string,
+    service_account = string,
+  }))
+  description = "List of additional IRSA accounts to create."
+  default     = []
 }
 
 #
@@ -220,6 +233,23 @@ variable "default_instance_type" {
   description = "The EC2 instance type to use for the EKS cluster's default node group."
 }
 
+variable "karpenter_replica_count" {
+  type        = number
+  default     = 2
+  description = "The number of replicas for the Karpenter controller."
+}
+
+variable "karpenter_default_nodeclass_ami_selector_terms" {
+  type        = any
+  default     = null
+  description = "If specified, override the included `default` nodeclass AMI selector terms."
+}
+
+variable "karpenter_default_nodepool_spec" {
+  type        = any
+  default     = null
+  description = "If specified, override the included `default` nodepool spec."
+}
 
 variable "additional_tags" {
   type        = map(any)
@@ -231,6 +261,12 @@ variable "additional_namespaces" {
   type        = list(string)
   description = "A list of namespaces that should be created on the cluster. The `{{.nuon.install.id}}` namespace is created by default."
   default     = []
+}
+
+variable "helm_driver" {
+  type        = string
+  description = "One of 'configmap' or 'secret'"
+  default     = "secret"
 }
 
 #
