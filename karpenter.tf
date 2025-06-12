@@ -164,7 +164,7 @@ resource "kubectl_manifest" "karpenter_ec2nodeclass_default" {
       # https://karpenter.sh/v1.0/concepts/nodeclasses/#specamiselectorterms
       amiSelectorTerms = [
         {
-          alias = "al2@latest"
+          alias = "al2023@latest"
         }
       ]
       subnetSelectorTerms = [
