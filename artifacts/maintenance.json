@@ -1,5 +1,0 @@
-resource "aws_iam_policy" "maintenance" {
-  name   = "runner-maintenance-${var.nuon_id}"
-  policy = var.maintenance_iam_policy
-  tags   = var.tags
-}
