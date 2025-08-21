@@ -40,7 +40,7 @@ resource "aws_kms_key" "eks" {
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 20.35.0"
+  version = "20.35.0"
 
   cluster_name                    = local.cluster_name
   cluster_version                 = local.cluster_version
