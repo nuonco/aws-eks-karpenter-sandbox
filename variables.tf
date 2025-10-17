@@ -251,6 +251,17 @@ variable "karpenter_default_nodepool_spec" {
   description = "If specified, override the included `default` nodepool spec."
 }
 
+variable "karpenter_ec2nodeclass_default_metadata_options" {
+  type        = any
+  description = "Metadata options for default karpenter ec2 nodepool. Defaults to the suggested defaults."
+  default = {
+    httpEndpoint            = "enabled"
+    httpProtocolIPv6        = "disabled"
+    httpPutResponseHopLimit = 1
+    httpTokens              = "required"
+  }
+}
+
 variable "additional_tags" {
   type        = map(any)
   description = "Extra tags to append to the default tags that will be added to install resources."
