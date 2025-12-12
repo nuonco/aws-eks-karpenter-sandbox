@@ -47,3 +47,10 @@ global:
   - effect: NoSchedule
     key: karpenter.sh/controller
     value: "true"
+
+webhooksCleanup:
+  image:
+    repository: bitnamilegacy/kubectl
+policyReportsCleanup:
+  image:
+    repository: bitnamilegacy/kubectl
