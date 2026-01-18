@@ -233,6 +233,13 @@ variable "default_instance_type" {
   description = "The EC2 instance type to use for the EKS cluster's default node group."
 }
 
+# karpenter
+variable "karpenter_version" {
+  type        = string
+  default     = "1.4.0"
+  description = "The karpenter version you'd like to install."
+}
+
 variable "karpenter_replica_count" {
   type        = number
   default     = 2
