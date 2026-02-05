@@ -45,7 +45,7 @@ module "eks" {
   cluster_name                    = local.cluster_name
   cluster_version                 = local.cluster_version
   cluster_endpoint_private_access = true
-  cluster_endpoint_public_access  = true
+  cluster_endpoint_public_access  = false
 
   vpc_id     = data.aws_vpc.vpc.id
   subnet_ids = local.subnets.private.ids
