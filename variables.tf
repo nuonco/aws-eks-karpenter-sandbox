@@ -209,6 +209,12 @@ variable "cluster_name" {
   default     = ""
 }
 
+variable "cluster_endpoint_public_access" {
+  type        = bool
+  description = "Whether the EKS cluster API server endpoint is publicly accessible."
+  default     = false
+}
+
 variable "min_size" {
   type        = number
   default     = 2
