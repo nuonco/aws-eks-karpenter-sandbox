@@ -42,3 +42,9 @@ resource "aws_iam_role_policy_attachment" "ecr_access_deprovision" {
   role       = local.roles.deprovision_iam_role_name
   policy_arn = aws_iam_policy.ecr_access.arn
 }
+
+resource "aws_iam_role_policy_attachment" "ecr_access_break_glass" {
+  count      = var.break_glass_iam_role_arn != "" ? 1 : 0
+  role       = local.roles.break_glass_iam_role_name
+  policy_arn = aws_iam_policy.ecr_access.arn
+}

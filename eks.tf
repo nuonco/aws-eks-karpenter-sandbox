@@ -31,7 +31,16 @@ locals {
     },
   }
 
-  access_entries = merge(local.default_access_entries, var.additional_access_entry)
+  break_glass_access_entry = var.break_glass_iam_role_arn != "" ? {
+    "break_glass" = {
+      principal_arn       = var.break_glass_iam_role_arn
+      kubernetes_groups   = concat(["break_glass"], var.break_glass_role_eks_kubernetes_groups)
+      policy_associations = var.break_glass_role_eks_access_entry_policy_associations,
+      tags                = local.tags
+    }
+  } : {}
+
+  access_entries = merge(local.default_access_entries, local.break_glass_access_entry, var.additional_access_entry)
 }
 
 resource "aws_kms_key" "eks" {
