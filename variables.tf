@@ -22,6 +22,7 @@ locals {
     provision_iam_role_name   = split("/", var.provision_iam_role_arn)[length(split("/", var.provision_iam_role_arn)) - 1]
     deprovision_iam_role_name = split("/", var.deprovision_iam_role_arn)[length(split("/", var.deprovision_iam_role_arn)) - 1]
     maintenance_iam_role_name = split("/", var.maintenance_iam_role_arn)[length(split("/", var.maintenance_iam_role_arn)) - 1]
+    break_glass_iam_role_name = var.break_glass_iam_role_arn != "" ? split("/", var.break_glass_iam_role_arn)[length(split("/", var.break_glass_iam_role_arn)) - 1] : ""
   }
 }
 
@@ -49,6 +50,12 @@ variable "deprovision_iam_role_arn" {
   description = "The deprovision IAM Role ARN"
 }
 
+variable "break_glass_iam_role_arn" {
+  type        = string
+  description = "The break glass IAM Role ARN. If provided, an EKS access entry will be created for this role."
+  default     = ""
+}
+
 #
 # values from cloudformation install stack
 #
@@ -69,6 +76,12 @@ variable "maintenance_role_eks_kubernetes_groups" {
 variable "deprovision_role_eks_kubernetes_groups" {
   type        = list(any)
   description = "List of Kubernetes Groups to add this role to. The deprovision role is assigned to a deprovision group automatically. These are additional groups."
+  default     = []
+}
+
+variable "break_glass_role_eks_kubernetes_groups" {
+  type        = list(any)
+  description = "List of Kubernetes Groups to add the break glass role to. The break glass role is assigned to a break_glass group automatically. These are additional groups."
   default     = []
 }
 
@@ -118,6 +131,25 @@ variable "maintenance_role_eks_access_entry_policy_associations" {
 variable "deprovision_role_eks_access_entry_policy_associations" {
   type        = map(any)
   description = "EKS Cluster Access Entry Policy Associations for deprovision role."
+  default = {
+    cluster_admin = {
+      policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+      access_scope = {
+        type = "cluster"
+      }
+    }
+    eks_admin = {
+      policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
+      access_scope = {
+        type = "cluster"
+      }
+    }
+  }
+}
+
+variable "break_glass_role_eks_access_entry_policy_associations" {
+  type        = map(any)
+  description = "EKS Cluster Access Entry Policy Associations for break glass role. Only created if the var `break_glass_iam_role_arn` is not empty."
   default = {
     cluster_admin = {
       policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
