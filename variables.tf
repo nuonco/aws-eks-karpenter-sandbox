@@ -19,8 +19,8 @@ locals {
   )
 
   roles = {
-    provision_iam_role_name   = split("/", var.provision_iam_role_arn)[length(split("/", var.provision_iam_role_arn)) - 1]
-    deprovision_iam_role_name = split("/", var.deprovision_iam_role_arn)[length(split("/", var.deprovision_iam_role_arn)) - 1]
+    provision_iam_role_name   = var.provision_iam_role_arn != "" ? split("/", var.provision_iam_role_arn)[length(split("/", var.provision_iam_role_arn)) - 1] : ""
+    deprovision_iam_role_name = var.deprovision_iam_role_arn != "" ? split("/", var.deprovision_iam_role_arn)[length(split("/", var.deprovision_iam_role_arn)) - 1] : ""
     maintenance_iam_role_name = split("/", var.maintenance_iam_role_arn)[length(split("/", var.maintenance_iam_role_arn)) - 1]
     break_glass_iam_role_name = var.break_glass_iam_role_arn != "" ? split("/", var.break_glass_iam_role_arn)[length(split("/", var.break_glass_iam_role_arn)) - 1] : ""
   }
@@ -42,12 +42,14 @@ variable "maintenance_iam_role_arn" {
 
 variable "provision_iam_role_arn" {
   type        = string
-  description = "The maintenance IAM Role ARN"
+  description = "The provision IAM Role ARN. If empty, no EKS access entry will be created for this role."
+  default     = ""
 }
 
 variable "deprovision_iam_role_arn" {
   type        = string
-  description = "The deprovision IAM Role ARN"
+  description = "The deprovision IAM Role ARN. If empty, no EKS access entry will be created for this role."
+  default     = ""
 }
 
 variable "break_glass_iam_role_arn" {
