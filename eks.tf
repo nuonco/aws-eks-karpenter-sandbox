@@ -9,27 +9,33 @@ locals {
 
   // access entries
   // three roles in play: provision, deprovision, maintenance
-  // this becomes the provision role
+  // provision and deprovision are conditionally created based on whether their ARNs are provided
   default_access_entries = {
-    "provision" = {
-      principal_arn       = var.provision_iam_role_arn
-      kubernetes_groups   = concat(["provision"], var.provision_role_eks_kubernetes_groups)
-      policy_associations = var.provision_role_eks_access_entry_policy_associations,
-      tags                = local.tags
-    },
     "maintenance" = {
       principal_arn       = var.maintenance_iam_role_arn
       kubernetes_groups   = concat(["maintenance"], var.maintenance_role_eks_kubernetes_groups)
       policy_associations = var.maintenance_role_eks_access_entry_policy_associations,
       tags                = local.tags
     },
+  }
+
+  provision_access_entry = var.provision_iam_role_arn != "" ? {
+    "provision" = {
+      principal_arn       = var.provision_iam_role_arn
+      kubernetes_groups   = concat(["provision"], var.provision_role_eks_kubernetes_groups)
+      policy_associations = var.provision_role_eks_access_entry_policy_associations,
+      tags                = local.tags
+    },
+  } : {}
+
+  deprovision_access_entry = var.deprovision_iam_role_arn != "" ? {
     "deprovision" = {
       principal_arn       = var.deprovision_iam_role_arn
       kubernetes_groups   = concat(["deprovision"], var.deprovision_role_eks_kubernetes_groups)
       policy_associations = var.deprovision_role_eks_access_entry_policy_associations,
       tags                = local.tags
     },
-  }
+  } : {}
 
   break_glass_access_entry = var.break_glass_iam_role_arn != "" ? {
     "break_glass" = {
@@ -40,7 +46,7 @@ locals {
     }
   } : {}
 
-  access_entries = merge(local.default_access_entries, local.break_glass_access_entry, var.additional_access_entry)
+  access_entries = merge(local.default_access_entries, local.provision_access_entry, local.deprovision_access_entry, local.break_glass_access_entry, var.additional_access_entry)
 }
 
 resource "aws_kms_key" "eks" {
