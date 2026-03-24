@@ -28,21 +28,26 @@ resource "aws_iam_policy" "ecr_access" {
   tags   = var.tags
 }
 
-resource "aws_iam_role_policy_attachment" "ecr_access_provision" {
-  count      = var.provision_iam_role_arn != "" ? 1 : 0
-  role       = local.roles.provision_iam_role_name
+resource "aws_iam_role_policy_attachment" "ecr_access" {
+  for_each   = local.all_role_names
+  role       = each.value
   policy_arn = aws_iam_policy.ecr_access.arn
 }
 
-resource "aws_iam_role_policy_attachment" "ecr_access_maintenance" {
-  role       = local.roles.maintenance_iam_role_name
-  policy_arn = aws_iam_policy.ecr_access.arn
+# State migration: map old singular resources to new for_each keys
+moved {
+  from = aws_iam_role_policy_attachment.ecr_access_provision[0]
+  to   = aws_iam_role_policy_attachment.ecr_access["provision-0"]
 }
 
-resource "aws_iam_role_policy_attachment" "ecr_access_deprovision" {
-  count      = var.deprovision_iam_role_arn != "" ? 1 : 0
-  role       = local.roles.deprovision_iam_role_name
-  policy_arn = aws_iam_policy.ecr_access.arn
+moved {
+  from = aws_iam_role_policy_attachment.ecr_access_maintenance
+  to   = aws_iam_role_policy_attachment.ecr_access["maintenance-0"]
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.ecr_access_deprovision[0]
+  to   = aws_iam_role_policy_attachment.ecr_access["deprovision-0"]
 }
 
 resource "aws_iam_role_policy_attachment" "ecr_access_break_glass" {

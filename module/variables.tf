@@ -22,6 +22,24 @@ variable "deprovision_iam_role_arn" {
   description = "The deprovision IAM Role ARN"
 }
 
+variable "additional_provision_iam_role_arns" {
+  type        = list(string)
+  description = "Additional provision IAM Role ARNs. Each gets the same EKS access entry config as the primary provision role."
+  default     = []
+}
+
+variable "additional_deprovision_iam_role_arns" {
+  type        = list(string)
+  description = "Additional deprovision IAM Role ARNs. Each gets the same EKS access entry config as the primary deprovision role."
+  default     = []
+}
+
+variable "additional_maintenance_iam_role_arns" {
+  type        = list(string)
+  description = "Additional maintenance IAM Role ARNs. Each gets the same EKS access entry config as the primary maintenance role."
+  default     = []
+}
+
 #
 # from configs
 #

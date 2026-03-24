@@ -24,6 +24,18 @@ locals {
     maintenance_iam_role_name = split("/", var.maintenance_iam_role_arn)[length(split("/", var.maintenance_iam_role_arn)) - 1]
     break_glass_iam_role_name = var.break_glass_iam_role_arn != "" ? split("/", var.break_glass_iam_role_arn)[length(split("/", var.break_glass_iam_role_arn)) - 1] : ""
   }
+
+  # Aggregate all role ARNs per type (primary + additional)
+  all_provision_arns   = compact(concat([var.provision_iam_role_arn], var.additional_provision_iam_role_arns))
+  all_deprovision_arns = compact(concat([var.deprovision_iam_role_arn], var.additional_deprovision_iam_role_arns))
+  all_maintenance_arns = concat([var.maintenance_iam_role_arn], var.additional_maintenance_iam_role_arns)
+
+  # Map of role_key => role_name for ECR policy attachments
+  all_role_names = merge(
+    { for i, arn in local.all_provision_arns : "provision-${i}" => split("/", arn)[length(split("/", arn)) - 1] },
+    { for i, arn in local.all_deprovision_arns : "deprovision-${i}" => split("/", arn)[length(split("/", arn)) - 1] },
+    { for i, arn in local.all_maintenance_arns : "maintenance-${i}" => split("/", arn)[length(split("/", arn)) - 1] },
+  )
 }
 
 #
@@ -56,6 +68,24 @@ variable "break_glass_iam_role_arn" {
   type        = string
   description = "The break glass IAM Role ARN. If provided, an EKS access entry will be created for this role."
   default     = ""
+}
+
+variable "additional_provision_iam_role_arns" {
+  type        = list(string)
+  description = "Additional provision IAM Role ARNs. Each gets the same EKS access entry config as the primary provision role."
+  default     = []
+}
+
+variable "additional_deprovision_iam_role_arns" {
+  type        = list(string)
+  description = "Additional deprovision IAM Role ARNs. Each gets the same EKS access entry config as the primary deprovision role."
+  default     = []
+}
+
+variable "additional_maintenance_iam_role_arns" {
+  type        = list(string)
+  description = "Additional maintenance IAM Role ARNs. Each gets the same EKS access entry config as the primary maintenance role."
+  default     = []
 }
 
 #

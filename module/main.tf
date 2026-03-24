@@ -6,6 +6,10 @@ module "nuon-aws-eks-sandbox" {
   maintenance_iam_role_arn = var.maintenance_iam_role_arn
   deprovision_iam_role_arn = var.deprovision_iam_role_arn
 
+  additional_provision_iam_role_arns   = var.additional_provision_iam_role_arns
+  additional_deprovision_iam_role_arns = var.additional_deprovision_iam_role_arns
+  additional_maintenance_iam_role_arns = var.additional_maintenance_iam_role_arns
+
   provision_role_eks_access_entry_policy_associations   = var.provision_role_eks_access_entry_policy_associations
   maintenance_role_eks_access_entry_policy_associations = var.maintenance_role_eks_access_entry_policy_associations
   deprovision_role_eks_access_entry_policy_associations = var.deprovision_role_eks_access_entry_policy_associations
