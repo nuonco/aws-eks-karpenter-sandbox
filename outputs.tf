@@ -14,6 +14,7 @@ output "cluster" {
     certificate_authority_data = module.eks.cluster_certificate_authority_data
     endpoint                   = module.eks.cluster_endpoint
     name                       = module.eks.cluster_name
+    version                    = module.eks.cluster_version
     platform_version           = module.eks.cluster_platform_version
     status                     = module.eks.cluster_status
     oidc_issuer_url            = module.eks.cluster_oidc_issuer_url
