@@ -47,6 +47,13 @@ locals {
   } : {}
 
   access_entries = merge(local.default_access_entries, local.provision_access_entry, local.deprovision_access_entry, local.break_glass_access_entry, var.additional_access_entry)
+
+  cluster_addons = {
+    for name, addon in var.cluster_addons : name => merge(
+      addon,
+      can(addon.configuration_values) ? { configuration_values = jsonencode(addon.configuration_values) } : {}
+    )
+  }
 }
 
 resource "aws_kms_key" "eks" {
@@ -71,33 +78,7 @@ module "eks" {
     resources        = ["secrets"]
   }
 
-  cluster_addons = {
-    coredns = {
-      configuration_values = jsonencode({
-        tolerations = [
-          # Allow CoreDNS to run on the same nodes as the Karpenter controller
-          # for use during cluster creation when Karpenter nodes do not yet exist
-          #
-          {
-            key    = "karpenter.sh/controller"
-            value  = "true"
-            effect = "NoSchedule"
-          },
-          {
-            key : "CriticalAddonsOnly"
-            value : "true"
-            effect : "NoSchedule"
-          },
-        ]
-      })
-    }
-    eks-pod-identity-agent = {}
-    kube-proxy             = {}
-    vpc-cni = {
-      most_recent = true
-      preserve    = true
-    }
-  }
+  cluster_addons = local.cluster_addons
 
   authentication_mode                      = "API_AND_CONFIG_MAP"
   access_entries                           = local.access_entries

@@ -234,3 +234,33 @@ variable "tags" {
   type        = map(any)
   description = "List of custom tags to add to the install resources. Used for taxonomic purposes."
 }
+
+variable "cluster_addons" {
+  type        = any
+  description = "Map of cluster addon configurations passed to the upstream EKS module. Each entry's `configuration_values` should be a map and will be jsonencoded automatically."
+  default = {
+    coredns = {
+      configuration_values = {
+        tolerations = [
+          {
+            key    = "karpenter.sh/controller"
+            value  = "true"
+            effect = "NoSchedule"
+          },
+          {
+            key    = "CriticalAddonsOnly"
+            value  = "true"
+            effect = "NoSchedule"
+          },
+        ]
+      }
+    }
+    eks-pod-identity-agent = {}
+    kube-proxy             = {}
+    vpc-cni = {
+      most_recent = true
+      preserve    = true
+    }
+  }
+}
+
