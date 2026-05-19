@@ -14,12 +14,14 @@ variable "maintenance_iam_role_arn" {
 
 variable "provision_iam_role_arn" {
   type        = string
-  description = "The maintenance IAM Role ARN"
+  description = "The provision IAM Role ARN. If empty, no EKS access entry will be created for this role."
+  default     = ""
 }
 
 variable "deprovision_iam_role_arn" {
   type        = string
-  description = "The deprovision IAM Role ARN"
+  description = "The deprovision IAM Role ARN. If empty, no EKS access entry will be created for this role."
+  default     = ""
 }
 
 #
@@ -175,6 +177,12 @@ variable "default_instance_type" {
   type        = string
   default     = "t3a.medium"
   description = "The EC2 instance type to use for the EKS cluster's default node group."
+}
+
+variable "cluster_addons" {
+  type        = any
+  description = "EKS cluster addons to merge on top of the built-in defaults (coredns, eks-pod-identity-agent, kube-proxy, vpc-cni). Provide a map keyed by addon name to override or extend defaults. Set a key to `null` to remove a default addon."
+  default     = {}
 }
 
 

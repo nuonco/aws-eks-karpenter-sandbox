@@ -47,31 +47,8 @@ locals {
   } : {}
 
   access_entries = merge(local.default_access_entries, local.provision_access_entry, local.deprovision_access_entry, local.break_glass_access_entry, var.additional_access_entry)
-}
 
-resource "aws_kms_key" "eks" {
-  description = "Key for ${local.cluster_name} EKS cluster"
-}
-
-module "eks" {
-  source  = "terraform-aws-modules/eks/aws"
-  version = "20.35.0"
-
-  cluster_name                    = local.cluster_name
-  cluster_version                 = local.cluster_version
-  cluster_endpoint_private_access = true
-  cluster_endpoint_public_access  = var.cluster_endpoint_public_access
-
-  vpc_id     = data.aws_vpc.vpc.id
-  subnet_ids = local.subnets.private.ids
-
-  create_kms_key = false
-  cluster_encryption_config = {
-    provider_key_arn = aws_kms_key.eks.arn
-    resources        = ["secrets"]
-  }
-
-  cluster_addons = {
+  default_cluster_addons = {
     coredns = {
       configuration_values = jsonencode({
         tolerations = [
@@ -98,6 +75,37 @@ module "eks" {
       preserve    = true
     }
   }
+
+  # null entries in var.cluster_addons remove a default; everything else overrides/extends
+  cluster_addons = {
+    for k, v in merge(local.default_cluster_addons, var.cluster_addons) :
+    k => v if v != null
+  }
+}
+
+resource "aws_kms_key" "eks" {
+  description = "Key for ${local.cluster_name} EKS cluster"
+}
+
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "20.35.0"
+
+  cluster_name                    = local.cluster_name
+  cluster_version                 = local.cluster_version
+  cluster_endpoint_private_access = true
+  cluster_endpoint_public_access  = var.cluster_endpoint_public_access
+
+  vpc_id     = data.aws_vpc.vpc.id
+  subnet_ids = local.subnets.private.ids
+
+  create_kms_key = false
+  cluster_encryption_config = {
+    provider_key_arn = aws_kms_key.eks.arn
+    resources        = ["secrets"]
+  }
+
+  cluster_addons = local.cluster_addons
 
   authentication_mode                      = "API_AND_CONFIG_MAP"
   access_entries                           = local.access_entries

@@ -249,6 +249,12 @@ variable "cluster_endpoint_public_access" {
   default     = false
 }
 
+variable "cluster_addons" {
+  type        = any
+  description = "EKS cluster addons to merge on top of the built-in defaults (coredns, eks-pod-identity-agent, kube-proxy, vpc-cni). Provide a map keyed by addon name to override or extend defaults. Set a key to `null` to remove a default addon."
+  default     = {}
+}
+
 variable "min_size" {
   type        = number
   default     = 2
