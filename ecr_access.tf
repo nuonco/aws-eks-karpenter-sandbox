@@ -35,6 +35,7 @@ resource "aws_iam_role_policy_attachment" "ecr_access_provision" {
 }
 
 resource "aws_iam_role_policy_attachment" "ecr_access_maintenance" {
+  count      = var.maintenance_iam_role_arn != "" ? 1 : 0
   role       = local.roles.maintenance_iam_role_name
   policy_arn = aws_iam_policy.ecr_access.arn
 }
