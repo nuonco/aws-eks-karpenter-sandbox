@@ -47,6 +47,43 @@ locals {
   } : {}
 
   access_entries = merge(local.default_access_entries, local.provision_access_entry, local.deprovision_access_entry, local.break_glass_access_entry, var.additional_access_entry)
+
+  default_cluster_addons = {
+    coredns = {
+      configuration_values = {
+        tolerations = [
+          # Allow CoreDNS to run on the same nodes as the Karpenter controller
+          # for use during cluster creation when Karpenter nodes do not yet exist
+          {
+            key    = "karpenter.sh/controller"
+            value  = "true"
+            effect = "NoSchedule"
+          },
+          {
+            key    = "CriticalAddonsOnly"
+            value  = "true"
+            effect = "NoSchedule"
+          },
+        ]
+      }
+    }
+    eks-pod-identity-agent = {}
+    kube-proxy             = {}
+    vpc-cni = {
+      most_recent = true
+      preserve    = true
+    }
+  }
+
+  # null entries in var.cluster_addons remove a default; everything else overrides/extends.
+  # configuration_values may be passed as an object — we jsonencode it here since the AWS
+  # provider requires a string.
+  cluster_addons = {
+    for k, v in merge(local.default_cluster_addons, var.cluster_addons) :
+    k => merge(v, lookup(v, "configuration_values", null) == null ? {} : {
+      configuration_values = try(tostring(v.configuration_values), jsonencode(v.configuration_values))
+    }) if v != null
+  }
 }
 
 resource "aws_kms_key" "eks" {
@@ -71,33 +108,7 @@ module "eks" {
     resources        = ["secrets"]
   }
 
-  cluster_addons = {
-    coredns = {
-      configuration_values = jsonencode({
-        tolerations = [
-          # Allow CoreDNS to run on the same nodes as the Karpenter controller
-          # for use during cluster creation when Karpenter nodes do not yet exist
-          #
-          {
-            key    = "karpenter.sh/controller"
-            value  = "true"
-            effect = "NoSchedule"
-          },
-          {
-            key : "CriticalAddonsOnly"
-            value : "true"
-            effect : "NoSchedule"
-          },
-        ]
-      })
-    }
-    eks-pod-identity-agent = {}
-    kube-proxy             = {}
-    vpc-cni = {
-      most_recent = true
-      preserve    = true
-    }
-  }
+  cluster_addons = local.cluster_addons
 
   authentication_mode                      = "API_AND_CONFIG_MAP"
   access_entries                           = local.access_entries
