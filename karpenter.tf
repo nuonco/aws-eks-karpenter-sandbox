@@ -100,6 +100,9 @@ resource "helm_release" "karpenter" {
         clusterName : local.karpenter.cluster_name
         interruptionQueue : module.karpenter.queue_name
         batchMaxDuration : "15s" # a little longer than the default
+        featureGates : {
+          nodeRepair : true
+        }
       }
       dnsPolicy : "ClusterFirst"
       controller : {
