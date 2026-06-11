@@ -41,14 +41,20 @@ output "vpc" {
     # replaces this next line - overall not necessary
     # azs  = data.aws_vpc.vpc.azs
 
-    // ensure the data resource will actually hand us this
+    // the set of all azs in which there is a subnet, public and private
+    subnet_azs = distinct(concat(local.subnets.public.azs, local.subnets.private.azs))
+
     private_subnet_cidr_blocks = local.subnets.private.cidrs
     private_subnet_ids         = local.subnets.private.ids
+    private_subnet_azs         = local.subnets.private.azs
 
     public_subnet_cidr_blocks = local.subnets.public.cidrs
     public_subnet_ids         = local.subnets.public.ids
-    runner_subnet_id          = local.subnets.runner.ids[0]
-    runner_subnet_cidr        = local.subnets.runner.cidrs[0]
+    public_subnet_azs         = local.subnets.public.azs
+
+    runner_subnet_id   = local.subnets.runner.ids[0]
+    runner_subnet_cidr = local.subnets.runner.cidrs[0]
+    runner_subnet_az   = local.subnet.runner.azs[0]
 
     default_security_group_id = data.aws_security_group.default.id
   }

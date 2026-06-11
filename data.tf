@@ -75,19 +75,24 @@ data "aws_security_groups" "runner" {
   }
 }
 
+
+
 locals {
   subnets = {
     private = {
       ids   = data.aws_subnets.private.ids,
       cidrs = values(data.aws_subnet.private)[*].cidr_block,
+      azs   = values(data.aws_subnet.private)[*].availability_zone,
     }
     public = {
       ids   = data.aws_subnets.public.ids,
       cidrs = values(data.aws_subnet.public)[*].cidr_block,
+      azs   = values(data.aws_subnet.public)[*].availability_zone,
     }
     runner = {
       ids   = data.aws_subnets.runner.ids
       cidrs = values(data.aws_subnet.runner)[*].cidr_block
+      azs   = values(data.aws_subnet.runner)[*].availability_zone
     }
   }
 }
