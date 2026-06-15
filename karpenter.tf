@@ -174,7 +174,9 @@ resource "kubectl_manifest" "karpenter_ec2nodeclass_default" {
     metadata = {
       name = "default"
     }
-    spec = {
+    # merge in blockDeviceMappings only when set, so the AMI's default root
+    # volume is preserved when the var is null
+    spec = merge({
       instanceProfile  = "KarpenterNodeInstanceProfile-${local.karpenter.cluster_name}"
       amiSelectorTerms = local.default_nodeclass_ami_selector_terms
       # without this, pods on karpenter nodes can't use the IAM node role
@@ -195,7 +197,9 @@ resource "kubectl_manifest" "karpenter_ec2nodeclass_default" {
         }
       ]
       tags = local.tags
-    }
+      }, var.karpenter_default_nodeclass_block_device_mappings != null ? {
+      blockDeviceMappings = var.karpenter_default_nodeclass_block_device_mappings
+    } : {})
   })
 
   depends_on = [
