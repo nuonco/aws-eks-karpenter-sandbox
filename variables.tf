@@ -298,6 +298,12 @@ variable "karpenter_default_nodeclass_ami_selector_terms" {
   description = "If specified, override the included `default` nodeclass AMI selector terms."
 }
 
+variable "karpenter_default_nodeclass_block_device_mappings" {
+  type        = any
+  default     = null
+  description = "If specified, sets `blockDeviceMappings` on the `default` EC2NodeClass to override the AMI's default root volume (e.g. a larger gp3 root disk to fit large container images). Leaves the AMI default when null."
+}
+
 variable "karpenter_default_nodepool_spec" {
   type        = any
   default     = null
