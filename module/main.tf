@@ -27,7 +27,8 @@ module "nuon-aws-eks-sandbox" {
   cluster_addons        = var.cluster_addons
 
   # toggleable components
-  enable_nuon_dns = var.enable_nuon_dns
+  enable_nuon_dns      = var.enable_nuon_dns
+  enable_ingress_nginx = var.enable_ingress_nginx
 
   # provided by nuon
   nuon_id              = var.nuon_id

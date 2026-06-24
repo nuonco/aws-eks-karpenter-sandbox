@@ -1,6 +1,7 @@
 locals {
   # nuon dns
-  enable_nuon_dns = contains(["1", "true"], var.enable_nuon_dns)
+  enable_nuon_dns      = contains(["1", "true"], var.enable_nuon_dns)
+  enable_ingress_nginx = contains(["1", "true"], var.enable_ingress_nginx)
   nuon_dns = {
     enabled              = local.enable_nuon_dns
     internal_root_domain = var.internal_root_domain
@@ -348,6 +349,12 @@ variable "enable_nuon_dns" {
   type        = string
   default     = "false"
   description = "Whether or not the cluster should use a nuon-provided nuon.run domain. Controls the cert-manager-issuer and the route_53_zone."
+}
+
+variable "enable_ingress_nginx" {
+  type        = string
+  default     = "true"
+  description = "Whether or not to deploy the ingress-nginx helm release within the nuon_dns module."
 }
 
 #

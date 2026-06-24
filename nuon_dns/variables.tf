@@ -37,3 +37,9 @@ variable "nuon_id" {
   type        = string
   description = "The nuon id for this install. Used for naming purposes."
 }
+
+variable "enable_ingress_nginx" {
+  type        = bool
+  default     = true
+  description = "Whether or not to deploy the ingress-nginx helm release."
+}

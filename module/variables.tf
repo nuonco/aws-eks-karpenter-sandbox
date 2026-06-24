@@ -209,6 +209,12 @@ variable "enable_nuon_dns" {
   description = "Whether or not the cluster should use a nuon-provided nuon.run domain. Controls the cert-manager-issuer and the route_53_zone."
 }
 
+variable "enable_ingress_nginx" {
+  type        = string
+  default     = "true"
+  description = "Whether or not to deploy the ingress-nginx helm release within the nuon_dns module."
+}
+
 # toggle-able helm charts
 # TODO
 
