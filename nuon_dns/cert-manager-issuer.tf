@@ -8,6 +8,8 @@ locals {
 }
 
 resource "kubectl_manifest" "internal_cluster_issuer" {
+  count = var.enable_cert_manager ? 1 : 0
+
   yaml_body = yamlencode({
     apiVersion = "cert-manager.io/v1"
     kind       = "ClusterIssuer"
@@ -47,6 +49,8 @@ resource "kubectl_manifest" "internal_cluster_issuer" {
 }
 
 resource "kubectl_manifest" "public_cluster_issuer" {
+  count = var.enable_cert_manager ? 1 : 0
+
   yaml_body = yamlencode({
     apiVersion = "cert-manager.io/v1"
     kind       = "ClusterIssuer"

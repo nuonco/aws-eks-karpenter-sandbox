@@ -6,6 +6,8 @@ locals {
 }
 
 module "cert_manager_irsa" {
+  count = var.enable_cert_manager ? 1 : 0
+
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 5.0"
 
@@ -28,6 +30,8 @@ module "cert_manager_irsa" {
 }
 
 resource "helm_release" "cert_manager" {
+  count = var.enable_cert_manager ? 1 : 0
+
   namespace        = local.cert_manager.namespace
   create_namespace = true
 
@@ -43,7 +47,7 @@ resource "helm_release" "cert_manager" {
 
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = module.cert_manager_irsa.iam_role_arn
+    value = module.cert_manager_irsa[0].iam_role_arn
   }
 
   set {
