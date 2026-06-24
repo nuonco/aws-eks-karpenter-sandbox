@@ -97,7 +97,7 @@ output "nuon_dns" {
       revision = local.nuon_dns.enabled ? module.nuon_dns[0].cert_manager.release.revision : ""
     }
     ingress_nginx = {
-      enabled  = local.nuon_dns.enabled
+      enabled  = local.nuon_dns.enabled && local.enable_ingress_nginx
       id       = local.nuon_dns.enabled ? module.nuon_dns[0].ingress_nginx.release.id : ""
       chart    = local.nuon_dns.enabled ? module.nuon_dns[0].ingress_nginx.release.chart : ""
       revision = local.nuon_dns.enabled ? module.nuon_dns[0].ingress_nginx.release.revision : ""

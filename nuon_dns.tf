@@ -16,6 +16,7 @@ module "nuon_dns" {
   vpc_id                = data.aws_vpc.vpc.id
   nuon_id               = var.nuon_id
   tags                  = var.tags
+  enable_ingress_nginx  = local.enable_ingress_nginx
 
   depends_on = [
     module.eks,
