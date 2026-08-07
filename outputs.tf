@@ -129,3 +129,13 @@ output "karpenter" {
 output "additional_irsa" {
   value = { for ai in module.additional_irsa : ai.iam_role_name => ai }
 }
+
+output "cilium" {
+  value = {
+    enabled           = local.cilium.enabled
+    version           = local.cilium.enabled ? local.cilium.version : ""
+    namespace         = local.cilium.namespace
+    extra_helm_values = var.cilium_extra_helm_values
+  }
+  description = "Cilium attributes: whether cilium is acting as the cluster CNI, and the chart version and namespace it was installed with."
+}

@@ -68,7 +68,12 @@ locals {
       }
     }
     eks-pod-identity-agent = {}
-    kube-proxy             = {}
+  }
+
+  # Cilium replaces both the VPC CNI and kube-proxy, so they are left out
+  # entirely rather than installed and then removed.
+  cni_cluster_addons = local.enable_cilium ? {} : {
+    kube-proxy = {}
     vpc-cni = {
       most_recent = true
       preserve    = true
@@ -79,7 +84,7 @@ locals {
   # configuration_values may be passed as an object — we jsonencode it here since the AWS
   # provider requires a string.
   cluster_addons = {
-    for k, v in merge(local.default_cluster_addons, var.cluster_addons) :
+    for k, v in merge(local.default_cluster_addons, local.cni_cluster_addons, var.cluster_addons) :
     k => merge(v, lookup(v, "configuration_values", null) == null ? {} : {
       configuration_values = try(tostring(v.configuration_values), jsonencode(v.configuration_values))
     }) if v != null

@@ -66,5 +66,6 @@ resource "helm_release" "ebs_csi" {
     module.ebs_csi_irsa,
     module.eks,
     resource.aws_security_group_rule.runner_cluster_access,
+    helm_release.cilium,
   ]
 }

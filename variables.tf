@@ -2,6 +2,9 @@ locals {
   # nuon dns
   enable_nuon_dns      = contains(["1", "true"], var.enable_nuon_dns)
   enable_ingress_nginx = contains(["1", "true"], var.enable_ingress_nginx)
+
+  # cilium
+  enable_cilium = contains(["1", "true"], var.enable_cilium)
   nuon_dns = {
     enabled              = local.enable_nuon_dns
     internal_root_domain = var.internal_root_domain
@@ -361,6 +364,25 @@ variable "enable_ingress_nginx" {
   type        = string
   default     = "true"
   description = "Whether or not to deploy the ingress-nginx helm release within the nuon_dns module."
+}
+
+# Cilium
+variable "enable_cilium" {
+  type        = string
+  default     = "false"
+  description = "Whether or not to use Cilium as the cluster CNI. When enabled the vpc-cni and kube-proxy addons are not installed and Cilium owns the datapath, running in ENI IPAM mode so pods keep VPC-routable addresses."
+}
+
+variable "cilium_version" {
+  type        = string
+  default     = "1.19.6"
+  description = "The version of the cilium helm chart to deploy. Only used when enable_cilium is set."
+}
+
+variable "cilium_extra_helm_values" {
+  type        = map(any)
+  description = "Extra values to pass to the cilium helm chart."
+  default     = null
 }
 
 #
