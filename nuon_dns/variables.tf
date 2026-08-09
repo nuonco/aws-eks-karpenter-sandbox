@@ -43,3 +43,21 @@ variable "enable_ingress_nginx" {
   default     = true
   description = "Whether or not to deploy the ingress-nginx helm release."
 }
+
+variable "enable_cert_manager" {
+  type        = bool
+  default     = true
+  description = "Whether or not to deploy the cert-manager helm release, its IRSA role, and the cert-manager cluster issuers."
+}
+
+variable "enable_alb_ingress_controller" {
+  type        = bool
+  default     = true
+  description = "Whether or not to deploy the aws-load-balancer-controller helm release and its IRSA role."
+}
+
+variable "enable_external_dns" {
+  type        = bool
+  default     = true
+  description = "Whether or not to deploy the external-dns helm release and its IRSA role."
+}

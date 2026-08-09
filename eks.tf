@@ -114,7 +114,11 @@ module "eks" {
   access_entries                           = local.access_entries
   enable_cluster_creator_admin_permissions = false
   eks_managed_node_groups = {
-    karpenter = {
+    # merge in block_device_mappings only when set, so the AMI's default root
+    # volume is preserved when the var is null. disk_size is ignored by the
+    # module because this node group uses a custom launch template, so
+    # block_device_mappings is the supported override.
+    karpenter = merge({
       instance_types = local.instance_types
       min_size       = local.min_size
       max_size       = local.max_size
@@ -139,7 +143,9 @@ module "eks" {
       iam_role_additional_policies = {
         additional = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
       }
-    }
+      }, var.default_node_group_block_device_mappings != null ? {
+      block_device_mappings = var.default_node_group_block_device_mappings
+    } : {})
   }
 
   node_security_group_tags = merge(local.tags, {

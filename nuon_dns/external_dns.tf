@@ -15,6 +15,8 @@ locals {
 
 
 module "external_dns_irsa" {
+  count = var.enable_external_dns ? 1 : 0
+
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 5.0"
 
@@ -37,6 +39,8 @@ module "external_dns_irsa" {
 }
 
 resource "helm_release" "external_dns" {
+  count = var.enable_external_dns ? 1 : 0
+
   namespace        = local.external_dns.namespace
   create_namespace = true
 
@@ -52,7 +56,7 @@ resource "helm_release" "external_dns" {
 
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = module.external_dns_irsa.iam_role_arn
+    value = module.external_dns_irsa[0].iam_role_arn
   }
 
   set {

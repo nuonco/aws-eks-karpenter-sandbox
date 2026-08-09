@@ -18,17 +18,21 @@ module "nuon-aws-eks-sandbox" {
   kyverno_policy_dir = var.kyverno_policy_dir
 
   # cluster
-  cluster_version       = var.cluster_version
-  cluster_name          = var.cluster_name
-  min_size              = var.min_size
-  max_size              = var.max_size
-  desired_size          = var.desired_size
-  default_instance_type = var.default_instance_type
-  cluster_addons        = var.cluster_addons
+  cluster_version                          = var.cluster_version
+  cluster_name                             = var.cluster_name
+  min_size                                 = var.min_size
+  max_size                                 = var.max_size
+  desired_size                             = var.desired_size
+  default_instance_type                    = var.default_instance_type
+  default_node_group_block_device_mappings = var.default_node_group_block_device_mappings
+  cluster_addons                           = var.cluster_addons
 
   # toggleable components
-  enable_nuon_dns      = var.enable_nuon_dns
-  enable_ingress_nginx = var.enable_ingress_nginx
+  enable_nuon_dns               = var.enable_nuon_dns
+  enable_ingress_nginx          = var.enable_ingress_nginx
+  enable_cert_manager           = var.enable_cert_manager
+  enable_alb_ingress_controller = var.enable_alb_ingress_controller
+  enable_external_dns           = var.enable_external_dns
 
   # provided by nuon
   nuon_id              = var.nuon_id

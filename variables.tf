@@ -1,7 +1,10 @@
 locals {
   # nuon dns
-  enable_nuon_dns      = contains(["1", "true"], var.enable_nuon_dns)
-  enable_ingress_nginx = contains(["1", "true"], var.enable_ingress_nginx)
+  enable_nuon_dns               = contains(["1", "true"], var.enable_nuon_dns)
+  enable_ingress_nginx          = contains(["1", "true"], var.enable_ingress_nginx)
+  enable_cert_manager           = contains(["1", "true"], var.enable_cert_manager)
+  enable_alb_ingress_controller = contains(["1", "true"], var.enable_alb_ingress_controller)
+  enable_external_dns           = contains(["1", "true"], var.enable_external_dns)
   nuon_dns = {
     enabled              = local.enable_nuon_dns
     internal_root_domain = var.internal_root_domain
@@ -280,6 +283,12 @@ variable "default_instance_type" {
   description = "The EC2 instance type to use for the EKS cluster's default node group."
 }
 
+variable "default_node_group_block_device_mappings" {
+  type        = any
+  default     = null
+  description = "If specified, sets `block_device_mappings` on the `karpenter` EKS managed node group to override the AMI's default root volume (e.g. a larger gp3 root disk to fit large container images). `disk_size` is ignored by the module because the node group uses a custom launch template, so `block_device_mappings` is the supported override. Leaves the AMI default when null."
+}
+
 # karpenter
 variable "karpenter_version" {
   type        = string
@@ -361,6 +370,24 @@ variable "enable_ingress_nginx" {
   type        = string
   default     = "true"
   description = "Whether or not to deploy the ingress-nginx helm release within the nuon_dns module."
+}
+
+variable "enable_cert_manager" {
+  type        = string
+  default     = "true"
+  description = "Whether or not to deploy the cert-manager helm release, its IRSA role, and the cert-manager cluster issuers within the nuon_dns module."
+}
+
+variable "enable_alb_ingress_controller" {
+  type        = string
+  default     = "true"
+  description = "Whether or not to deploy the aws-load-balancer-controller helm release and its IRSA role within the nuon_dns module."
+}
+
+variable "enable_external_dns" {
+  type        = string
+  default     = "true"
+  description = "Whether or not to deploy the external-dns helm release and its IRSA role within the nuon_dns module."
 }
 
 #

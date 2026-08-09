@@ -6,6 +6,8 @@ locals {
 }
 
 module "alb_controller_irsa" {
+  count = var.enable_alb_ingress_controller ? 1 : 0
+
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 5.0"
 
@@ -25,6 +27,8 @@ module "alb_controller_irsa" {
 }
 
 resource "helm_release" "alb_ingress_controller" {
+  count = var.enable_alb_ingress_controller ? 1 : 0
+
   namespace        = local.alb_ingress_controller.namespace
   create_namespace = true
 
@@ -60,7 +64,7 @@ resource "helm_release" "alb_ingress_controller" {
 
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = module.alb_controller_irsa.iam_role_arn
+    value = module.alb_controller_irsa[0].iam_role_arn
   }
 
   set { // we only set this one tag in case any of the others (in local.tags) conflict.
