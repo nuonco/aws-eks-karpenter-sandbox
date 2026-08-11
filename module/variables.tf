@@ -179,6 +179,12 @@ variable "default_instance_type" {
   description = "The EC2 instance type to use for the EKS cluster's default node group."
 }
 
+variable "ami_type" {
+  type        = string
+  default     = "AL2023_x86_64_STANDARD"
+  description = "The AMI type for the EKS cluster's default node group. Use an ARM_64 variant (e.g. AL2023_ARM_64_STANDARD) to run the node group on Graviton instances."
+}
+
 variable "cluster_addons" {
   type        = any
   description = "EKS cluster addons to merge on top of the built-in defaults (coredns, eks-pod-identity-agent, kube-proxy, vpc-cni). Provide a map keyed by addon name to override or extend defaults. Set a key to `null` to remove a default addon."

@@ -280,6 +280,16 @@ variable "default_instance_type" {
   description = "The EC2 instance type to use for the EKS cluster's default node group."
 }
 
+# NOTE: the architecture of ami_type must match default_instance_type. To run arm64
+# workloads, set ami_type to an ARM_64 variant and default_instance_type to a Graviton
+# instance (m7g/c7g/t4g); EKS rejects a mismatched pair at create time. Karpenter-managed
+# nodes resolve their own AMI arch via the al2023@latest alias and need no change.
+variable "ami_type" {
+  type        = string
+  default     = "AL2023_x86_64_STANDARD"
+  description = "The AMI type for the EKS cluster's default node group. Use an ARM_64 variant (e.g. AL2023_ARM_64_STANDARD) to run the node group on Graviton instances."
+}
+
 # karpenter
 variable "karpenter_version" {
   type        = string
