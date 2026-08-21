@@ -87,8 +87,26 @@ locals {
   }
 }
 
+locals {
+  create_cluster_kms_key = var.cluster_encryption_kms_key_id == ""
+  cluster_kms_key_arn    = local.create_cluster_kms_key ? aws_kms_key.eks[0].arn : data.aws_kms_key.cluster_encryption[0].arn
+}
+
 resource "aws_kms_key" "eks" {
+  count = local.create_cluster_kms_key ? 1 : 0
+
   description = "Key for ${local.cluster_name} EKS cluster"
+}
+
+moved {
+  from = aws_kms_key.eks
+  to   = aws_kms_key.eks[0]
+}
+
+data "aws_kms_key" "cluster_encryption" {
+  count = local.create_cluster_kms_key ? 0 : 1
+
+  key_id = var.cluster_encryption_kms_key_id
 }
 
 module "eks" {
@@ -107,7 +125,7 @@ module "eks" {
 
   create_kms_key = false
   cluster_encryption_config = {
-    provider_key_arn = aws_kms_key.eks.arn
+    provider_key_arn = local.cluster_kms_key_arn
     resources        = ["secrets"]
   }
 

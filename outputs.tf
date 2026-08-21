@@ -26,8 +26,10 @@ output "cluster" {
 
     node_security_group_id = module.eks.node_security_group_id
     node_groups            = module.eks.eks_managed_node_groups
+
+    encryption_kms_key_arn = local.cluster_kms_key_arn
   }
-  description = "A map of EKS cluster attributes: arn, certificate_authority_data, endpoint, name, platform_version, status, oidc_issuer_url, oidc_provider_arn, cluster_security_group_id, node_security_group_id."
+  description = "A map of EKS cluster attributes: arn, certificate_authority_data, endpoint, name, platform_version, status, oidc_issuer_url, oidc_provider_arn, cluster_security_group_id, node_security_group_id, encryption_kms_key_arn."
 }
 
 output "vpc" {
