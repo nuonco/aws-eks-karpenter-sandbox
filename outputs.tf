@@ -70,8 +70,10 @@ output "ecr" {
     repository_name = var.nuon_id
     registry_id     = module.ecr.repository_registry_id
     registry_url    = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
+
+    encryption_kms_key_arn = local.ecr_kms_key_arn
   }
-  description = "A map of ECR attributes: repository_url, repository_arn, repository_name, registry_id, registry_url."
+  description = "A map of ECR attributes: repository_url, repository_arn, repository_name, registry_id, registry_url, encryption_kms_key_arn."
 }
 
 
@@ -120,6 +122,11 @@ output "karpenter" {
       arn  = resource.aws_iam_instance_profile.karpenter.arn
       name = local.karpenter.instance_profile_name
     }
+    controller_iam_role = {
+      name = module.karpenter.iam_role_name
+      arn  = module.karpenter.iam_role_arn
+    }
+
     discovery_key   = local.karpenter.discovery_key
     discovery_value = local.karpenter.discovery_value
 

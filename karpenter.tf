@@ -44,6 +44,30 @@ module "karpenter" {
 
   queue_name = "karpenter-${var.nuon_id}"
 
+  iam_policy_statements = local.ebs_kms_key_arn == null ? [] : [
+    {
+      sid       = "AllowKMSGrantForEBSEncryption"
+      actions   = ["kms:CreateGrant"]
+      resources = [local.ebs_kms_key_arn]
+      conditions = [{
+        test     = "Bool"
+        variable = "kms:GrantIsForAWSResource"
+        values   = ["true"]
+      }]
+    },
+    {
+      sid = "AllowKMSUseForEBSEncryption"
+      actions = [
+        "kms:Decrypt",
+        "kms:DescribeKey",
+        "kms:GenerateDataKeyWithoutPlaintext",
+        "kms:ReEncrypt*",
+      ]
+      resources  = [local.ebs_kms_key_arn]
+      conditions = []
+    },
+  ]
+
   depends_on = [
     module.eks,
     resource.aws_security_group_rule.runner_cluster_access,

@@ -29,7 +29,10 @@ module "nuon-aws-eks-sandbox" {
   ami_type                               = var.ami_type
   cluster_addons                         = var.cluster_addons
 
-  cluster_encryption_kms_key_id = var.cluster_encryption_kms_key_id
+  cluster_encryption_kms_key_id         = var.cluster_encryption_kms_key_id
+  ebs_encryption_kms_key_id             = var.ebs_encryption_kms_key_id
+  ecr_encryption_kms_key_id             = var.ecr_encryption_kms_key_id
+  cloudwatch_logs_encryption_kms_key_id = var.cloudwatch_logs_encryption_kms_key_id
 
   # toggleable components
   enable_nuon_dns      = var.enable_nuon_dns

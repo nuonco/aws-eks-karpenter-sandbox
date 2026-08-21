@@ -11,6 +11,7 @@ module "ebs_csi_irsa" {
 
   role_name             = "ebs-csi-${var.nuon_id}"
   attach_ebs_csi_policy = true
+  ebs_csi_kms_cmk_ids   = local.ebs_kms_key_arn == null ? [] : [local.ebs_kms_key_arn]
 
   oidc_providers = {
     k8s = {
