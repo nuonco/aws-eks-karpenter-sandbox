@@ -95,10 +95,11 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.35.0"
 
-  cluster_name                    = local.cluster_name
-  cluster_version                 = local.cluster_version
-  cluster_endpoint_private_access = true
-  cluster_endpoint_public_access  = var.cluster_endpoint_public_access
+  cluster_name                           = local.cluster_name
+  cluster_version                        = local.cluster_version
+  cluster_endpoint_private_access        = true
+  cluster_endpoint_public_access         = var.cluster_endpoint_public_access
+  cloudwatch_log_group_retention_in_days = var.cloudwatch_log_group_retention_in_days
 
   vpc_id     = data.aws_vpc.vpc.id
   subnet_ids = local.subnets.private.ids

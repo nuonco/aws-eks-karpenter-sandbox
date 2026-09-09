@@ -250,6 +250,17 @@ variable "cluster_endpoint_public_access" {
   default     = false
 }
 
+variable "cloudwatch_log_group_retention_in_days" {
+  type        = number
+  description = "Number of days to retain EKS control-plane logs in CloudWatch."
+  default     = 365
+
+  validation {
+    condition     = contains([0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653], var.cloudwatch_log_group_retention_in_days)
+    error_message = "cloudwatch_log_group_retention_in_days must be 0 (never expire) or a retention period supported by CloudWatch Logs."
+  }
+}
+
 variable "cluster_addons" {
   type        = any
   description = "EKS cluster addons to merge on top of the built-in defaults (coredns, eks-pod-identity-agent, kube-proxy, vpc-cni). Provide a map keyed by addon name to override or extend defaults. Set a key to `null` to remove a default addon."
