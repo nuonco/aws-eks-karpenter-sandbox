@@ -99,6 +99,7 @@ module "eks" {
   cluster_version                        = local.cluster_version
   cluster_endpoint_private_access        = true
   cluster_endpoint_public_access         = var.cluster_endpoint_public_access
+  cluster_enabled_log_types              = var.cluster_enabled_log_types
   cloudwatch_log_group_retention_in_days = var.cloudwatch_log_group_retention_in_days
 
   vpc_id     = data.aws_vpc.vpc.id
