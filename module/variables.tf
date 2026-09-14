@@ -155,6 +155,31 @@ variable "cluster_name" {
   default     = ""
 }
 
+variable "cluster_enabled_log_types" {
+  type        = list(string)
+  description = "EKS control-plane log types to send to CloudWatch. All enabled types share /aws/eks/<cluster>/cluster; retention is cloudwatch_log_group_retention_in_days."
+  default     = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+
+  validation {
+    condition = alltrue([
+      for t in var.cluster_enabled_log_types :
+      contains(["api", "audit", "authenticator", "controllerManager", "scheduler"], t)
+    ])
+    error_message = "cluster_enabled_log_types values must be api, audit, authenticator, controllerManager, or scheduler."
+  }
+}
+
+variable "cloudwatch_log_group_retention_in_days" {
+  type        = number
+  description = "Number of days to retain EKS control-plane logs in CloudWatch."
+  default     = 365
+
+  validation {
+    condition     = contains([0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653], var.cloudwatch_log_group_retention_in_days)
+    error_message = "cloudwatch_log_group_retention_in_days must be 0 (never expire) or a retention period supported by CloudWatch Logs."
+  }
+}
+
 variable "min_size" {
   type        = number
   default     = 2
