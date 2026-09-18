@@ -221,8 +221,9 @@ variable "additional_irsas" {
     role_name       = string,
     namespace       = string,
     service_account = string,
+    policy_name     = string,
   }))
-  description = "List of additional IRSA accounts to create."
+  description = "List of additional IRSA roles to create. policy_name identifies the existing customer-managed IAM policy to attach."
   default     = []
 }
 

@@ -127,5 +127,12 @@ output "karpenter" {
 }
 
 output "additional_irsa" {
-  value = { for ai in module.additional_irsa : ai.iam_role_name => ai }
+  description = "Additional IRSA roles keyed by configured role name."
+  value = {
+    for role_name, irsa in module.additional_irsa :
+    role_name => {
+      iam_role_name = irsa.iam_role_name
+      iam_role_arn  = irsa.iam_role_arn
+    }
+  }
 }
