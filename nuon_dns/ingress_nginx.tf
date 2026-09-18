@@ -52,3 +52,8 @@ resource "helm_release" "ingress_nginx" {
     helm_release.alb_ingress_controller
   ]
 }
+
+moved {
+  from = helm_release.ingress_nginx
+  to   = helm_release.ingress_nginx[0]
+}
