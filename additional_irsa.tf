@@ -1,3 +1,12 @@
+data "aws_iam_policy" "additional_irsa" {
+  for_each = {
+    for ai in var.additional_irsas :
+    ai.role_name => ai
+  }
+
+  name = each.value.policy_name
+}
+
 module "additional_irsa" {
   for_each = {
     for index, ai in var.additional_irsas :
@@ -8,6 +17,9 @@ module "additional_irsa" {
 
   role_name             = each.value.role_name
   attach_ebs_csi_policy = false
+  role_policy_arns = {
+    (data.aws_iam_policy.additional_irsa[each.key].arn) = data.aws_iam_policy.additional_irsa[each.key].arn
+  }
 
   oidc_providers = {
     k8s = {
