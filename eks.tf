@@ -87,10 +87,6 @@ locals {
   }
 }
 
-resource "aws_kms_key" "eks" {
-  description = "Key for ${local.cluster_name} EKS cluster"
-}
-
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.35.0"
@@ -107,9 +103,11 @@ module "eks" {
 
   create_kms_key = false
   cluster_encryption_config = {
-    provider_key_arn = aws_kms_key.eks.arn
+    provider_key_arn = local.cluster_kms_key_arn
     resources        = ["secrets"]
   }
+
+  cloudwatch_log_group_kms_key_id = local.cloudwatch_logs_kms_key_arn
 
   cluster_addons = local.cluster_addons
 

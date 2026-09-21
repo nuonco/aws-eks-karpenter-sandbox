@@ -210,6 +210,30 @@ variable "ami_type" {
   description = "The AMI type for the EKS cluster's default node group. Use an ARM_64 variant (e.g. AL2023_ARM_64_STANDARD) to run the node group on Graviton instances."
 }
 
+variable "cluster_encryption_kms_key_id" {
+  type        = string
+  description = "An existing KMS key (CMK) to use for EKS secrets encryption, given as a key ID, key ARN, alias name, or alias ARN. The key must live in the same region as the cluster and its key policy must allow the cluster IAM role to use it. If empty, this module creates a key."
+  default     = ""
+}
+
+variable "ebs_encryption_kms_key_id" {
+  type        = string
+  description = "An existing KMS key (CMK) to use for EBS encryption, given as a key ID, key ARN, alias name, or alias ARN. This grants the EBS CSI driver and the Karpenter controller permission to use the key; the key policy must allow those roles in turn (see the `karpenter.controller_iam_role` output). Dynamically provisioned PersistentVolumes are encrypted with it. Karpenter node root volumes are not - to encrypt those, also set `kmsKeyID` to this key in `var.karpenter_default_nodeclass_block_device_mappings`. If empty, no KMS permissions are granted and EBS encryption is left at the account default."
+  default     = ""
+}
+
+variable "ecr_encryption_kms_key_id" {
+  type        = string
+  description = "An existing KMS key (CMK) to use for ECR repository encryption, given as a key ID, key ARN, alias name, or alias ARN. ECR repository encryption is set at creation and is immutable, so changing this on an existing install replaces the repository. If empty, ECR uses the AWS-managed aws/ecr key."
+  default     = ""
+}
+
+variable "cloudwatch_logs_encryption_kms_key_id" {
+  type        = string
+  description = "An existing KMS key (CMK) to use for the EKS control plane CloudWatch log group, given as a key ID, key ARN, alias name, or alias ARN. The key policy must allow `logs.<region>.amazonaws.com` to use the key or the log group cannot be created or updated. If empty, CloudWatch Logs uses its own default encryption."
+  default     = ""
+}
+
 variable "cluster_addons" {
   type        = any
   description = "EKS cluster addons to merge on top of the built-in defaults (coredns, eks-pod-identity-agent, kube-proxy, vpc-cni). Provide a map keyed by addon name to override or extend defaults. Set a key to `null` to remove a default addon."

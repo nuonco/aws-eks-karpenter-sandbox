@@ -26,8 +26,10 @@ output "cluster" {
 
     node_security_group_id = module.eks.node_security_group_id
     node_groups            = module.eks.eks_managed_node_groups
+
+    encryption_kms_key_arn = local.cluster_kms_key_arn
   }
-  description = "A map of EKS cluster attributes: arn, certificate_authority_data, endpoint, name, platform_version, status, oidc_issuer_url, oidc_provider_arn, cluster_security_group_id, node_security_group_id."
+  description = "A map of EKS cluster attributes: arn, certificate_authority_data, endpoint, name, platform_version, status, oidc_issuer_url, oidc_provider_arn, cluster_security_group_id, node_security_group_id, encryption_kms_key_arn."
 }
 
 output "vpc" {
@@ -68,8 +70,10 @@ output "ecr" {
     repository_name = var.nuon_id
     registry_id     = module.ecr.repository_registry_id
     registry_url    = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
+
+    encryption_kms_key_arn = local.ecr_kms_key_arn
   }
-  description = "A map of ECR attributes: repository_url, repository_arn, repository_name, registry_id, registry_url."
+  description = "A map of ECR attributes: repository_url, repository_arn, repository_name, registry_id, registry_url, encryption_kms_key_arn."
 }
 
 
@@ -118,6 +122,11 @@ output "karpenter" {
       arn  = resource.aws_iam_instance_profile.karpenter.arn
       name = local.karpenter.instance_profile_name
     }
+    controller_iam_role = {
+      name = module.karpenter.iam_role_name
+      arn  = module.karpenter.iam_role_arn
+    }
+
     discovery_key   = local.karpenter.discovery_key
     discovery_value = local.karpenter.discovery_value
 
