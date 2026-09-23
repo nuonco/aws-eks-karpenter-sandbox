@@ -28,6 +28,7 @@ resource "helm_release" "kyverno" {
   depends_on = [
     module.eks,
     resource.aws_security_group_rule.runner_cluster_access,
+    helm_release.cilium,
   ]
 }
 
