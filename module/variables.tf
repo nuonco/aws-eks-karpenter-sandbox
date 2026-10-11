@@ -210,6 +210,12 @@ variable "ami_type" {
   description = "The AMI type for the EKS cluster's default node group. Use an ARM_64 variant (e.g. AL2023_ARM_64_STANDARD) to run the node group on Graviton instances."
 }
 
+variable "node_group_ami_release_version" {
+  type        = string
+  default     = ""
+  description = "AMI release version for the EKS cluster's default node group. Empty keeps the release AWS picked at node group create or upgrade, \"latest\" uses the recommended release for ami_type on every apply, and any other value (e.g. 1.35.8-20261003) pins that release."
+}
+
 variable "cluster_encryption_kms_key_id" {
   type        = string
   description = "An existing KMS key (CMK) to use for EKS secrets encryption, given as a key ID, key ARN, alias name, or alias ARN. The key must live in the same region as the cluster and its key policy must allow the cluster IAM role to use it. If empty, this module creates a key."

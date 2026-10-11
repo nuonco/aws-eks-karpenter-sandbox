@@ -27,6 +27,7 @@ module "nuon-aws-eks-sandbox" {
   desired_size                           = var.desired_size
   default_instance_type                  = var.default_instance_type
   ami_type                               = var.ami_type
+  node_group_ami_release_version         = var.node_group_ami_release_version
   cluster_addons                         = var.cluster_addons
 
   cluster_encryption_kms_key_id         = var.cluster_encryption_kms_key_id
