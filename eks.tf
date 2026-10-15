@@ -8,6 +8,8 @@ locals {
   max_size       = var.max_size
   desired_size   = var.desired_size
 
+  node_group_ami_release_version = var.node_group_ami_release_version
+
   // access entries
   // three roles in play: provision, deprovision, maintenance
   // provision and deprovision are conditionally created based on whether their ARNs are provided
@@ -121,6 +123,9 @@ module "eks" {
       min_size       = local.min_size
       max_size       = local.max_size
       desired_size   = local.desired_size
+
+      use_latest_ami_release_version = local.node_group_ami_release_version == "latest"
+      ami_release_version            = contains(["", "latest"], local.node_group_ami_release_version) ? null : local.node_group_ami_release_version
 
       # Used to ensure Karpenter runs on nodes that it does not manage
       labels = {

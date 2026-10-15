@@ -339,6 +339,12 @@ variable "ami_type" {
   description = "The AMI type for the EKS cluster's default node group. Use an ARM_64 variant (e.g. AL2023_ARM_64_STANDARD) to run the node group on Graviton instances."
 }
 
+variable "node_group_ami_release_version" {
+  type        = string
+  default     = ""
+  description = "AMI release version for the EKS cluster's default node group. Empty keeps the release AWS picked at node group create or upgrade, \"latest\" uses the recommended release for ami_type on every apply, and any other value (e.g. 1.35.8-20261003) pins that release."
+}
+
 # karpenter
 variable "karpenter_version" {
   type        = string
