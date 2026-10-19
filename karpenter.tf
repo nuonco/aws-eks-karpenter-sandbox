@@ -13,10 +13,6 @@ locals {
   }
 }
 
-# Worker role used only when the controller runs on Fargate, so the managed node
-# group can be omitted. Same policies that node group role has. Count keeps this
-# role out of the default path, and splat/concat avoids indexing a missing role
-# or a missing node group.
 data "aws_iam_policy_document" "karpenter_node_assume_role" {
   count = var.karpenter_on_fargate ? 1 : 0
 
@@ -55,10 +51,7 @@ resource "aws_iam_role_policy_attachment" "karpenter_node" {
   policy_arn = each.value
 }
 
-# Managed node groups get an EC2_LINUX access entry from EKS. The Karpenter
-# module is called with create_access_entry = false, and its entry resource
-# indexes its own node role, so it cannot attach an external role. Create the
-# entry here only when that node group does not exist.
+# the karpenter module can't create an access entry for an external node role
 resource "aws_eks_access_entry" "karpenter_node" {
   count = var.karpenter_on_fargate ? 1 : 0
 
@@ -69,8 +62,6 @@ resource "aws_eks_access_entry" "karpenter_node" {
   tags = local.tags
 }
 
-# The instance profile name stays stable because the EC2NodeClass role is immutable.
-# Exactly one of the dedicated role and the managed node group role exists.
 locals {
   karpenter_node_iam_role_name = concat(
     aws_iam_role.karpenter_node[*].name,

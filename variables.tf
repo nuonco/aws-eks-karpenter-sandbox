@@ -349,7 +349,7 @@ variable "node_group_ami_release_version" {
 variable "karpenter_on_fargate" {
   type        = bool
   default     = false
-  description = "Run the Karpenter controller on Fargate instead of the managed node group. Default false keeps the managed node group."
+  description = "Run the Karpenter controller on Fargate instead of the managed node group."
 }
 
 variable "karpenter_version" {

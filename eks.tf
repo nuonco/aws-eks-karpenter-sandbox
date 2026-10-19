@@ -88,9 +88,7 @@ locals {
     }) if v != null
   }
 
-  # The CoreDNS addon defaults to annotation eks.amazonaws.com/compute-type=ec2, which
-  # refuses Fargate. computeType=Fargate is that addon's switch. Leave a caller-supplied
-  # compute type (or the same annotation) alone, and do not touch other addons.
+  # CoreDNS addon defaults to compute-type=ec2; switch to Fargate unless the caller set one.
   coredns_configuration_object = try(jsondecode(local.cluster_addons_encoded.coredns.configuration_values), null)
   coredns_compute_type_set = (
     try(local.coredns_configuration_object.computeType, null) != null ||
@@ -135,8 +133,6 @@ module "eks" {
   authentication_mode                      = "API_AND_CONFIG_MAP"
   access_entries                           = local.access_entries
   enable_cluster_creator_admin_permissions = false
-  # Empty fargate_profiles does not create a profile or a pod execution role:
-  # the module for_eachs this map (terraform-aws-modules/eks/aws 20.35.0).
   eks_managed_node_groups = var.karpenter_on_fargate ? {} : {
     karpenter = {
       instance_types = local.instance_types
@@ -179,8 +175,7 @@ module "eks" {
             "app.kubernetes.io/name" = "karpenter"
           }
         },
-        # CoreDNS has to be up before any Karpenter EC2 node exists: the controller
-        # chart uses dnsPolicy ClusterFirst.
+        # controller uses ClusterFirst DNS before any Karpenter node exists
         {
           namespace = "kube-system"
           labels = {
