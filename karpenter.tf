@@ -13,11 +13,80 @@ locals {
   }
 }
 
+# Worker role used only when the controller runs on Fargate, so the managed node
+# group can be omitted. Same policies that node group role has. Count keeps this
+# role out of the default path, and splat/concat avoids indexing a missing role
+# or a missing node group.
+data "aws_iam_policy_document" "karpenter_node_assume_role" {
+  count = var.karpenter_on_fargate ? 1 : 0
+
+  statement {
+    sid     = "EKSNodeAssumeRole"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "karpenter_node" {
+  count = var.karpenter_on_fargate ? 1 : 0
+
+  name_prefix           = "karpenter-node-"
+  assume_role_policy    = one(data.aws_iam_policy_document.karpenter_node_assume_role[*].json)
+  force_detach_policies = true
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "karpenter_node" {
+  for_each = {
+    for k, v in {
+      AmazonEKSWorkerNodePolicy          = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+      AmazonEKS_CNI_Policy               = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+      AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+      AmazonSSMManagedInstanceCore       = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    } : k => v if var.karpenter_on_fargate
+  }
+
+  role       = one(aws_iam_role.karpenter_node[*].name)
+  policy_arn = each.value
+}
+
+# Managed node groups get an EC2_LINUX access entry from EKS. The Karpenter
+# module is called with create_access_entry = false, and its entry resource
+# indexes its own node role, so it cannot attach an external role. Create the
+# entry here only when that node group does not exist.
+resource "aws_eks_access_entry" "karpenter_node" {
+  count = var.karpenter_on_fargate ? 1 : 0
+
+  cluster_name  = module.eks.cluster_name
+  principal_arn = one(aws_iam_role.karpenter_node[*].arn)
+  type          = "EC2_LINUX"
+
+  tags = local.tags
+}
+
+# The instance profile name stays stable because the EC2NodeClass role is immutable.
+# Exactly one of the dedicated role and the managed node group role exists.
+locals {
+  karpenter_node_iam_role_name = concat(
+    aws_iam_role.karpenter_node[*].name,
+    [for ng in values(module.eks.eks_managed_node_groups) : ng.iam_role_name],
+  )[0]
+  karpenter_node_iam_role_arn = concat(
+    aws_iam_role.karpenter_node[*].arn,
+    [for ng in values(module.eks.eks_managed_node_groups) : ng.iam_role_arn],
+  )[0]
+}
+
 # NOTE: we use an instance_profile because the role changes between provisions
 #       but the role is immutable on the ec2nodeclass
 resource "aws_iam_instance_profile" "karpenter" {
   name = local.karpenter.instance_profile_name
-  role = module.eks.eks_managed_node_groups["karpenter"].iam_role_name
+  role = local.karpenter_node_iam_role_name
 }
 
 module "karpenter" {
@@ -29,7 +98,7 @@ module "karpenter" {
   create_access_entry = false
 
   create_node_iam_role = false
-  node_iam_role_arn    = module.eks.eks_managed_node_groups["karpenter"].iam_role_arn
+  node_iam_role_arn    = local.karpenter_node_iam_role_arn
 
   create_instance_profile = false
 
@@ -71,6 +140,8 @@ module "karpenter" {
   depends_on = [
     module.eks,
     resource.aws_security_group_rule.runner_cluster_access,
+    aws_iam_role_policy_attachment.karpenter_node,
+    aws_eks_access_entry.karpenter_node,
   ]
 }
 
@@ -130,11 +201,11 @@ resource "helm_release" "karpenter" {
         resources : {
           requests : {
             cpu : 1
-            memory : "1Gi"
+            memory : var.karpenter_on_fargate ? "2Gi" : "1Gi"
           }
           limits : {
             cpu : 1
-            memory : "1Gi"
+            memory : var.karpenter_on_fargate ? "2Gi" : "1Gi"
           }
         }
       }
@@ -228,7 +299,8 @@ resource "kubectl_manifest" "karpenter_ec2nodeclass_default" {
   })
 
   depends_on = [
-    helm_release.karpenter
+    helm_release.karpenter,
+    aws_iam_instance_profile.karpenter,
   ]
 }
 

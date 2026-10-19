@@ -81,11 +81,30 @@ locals {
   # null entries in var.cluster_addons remove a default; everything else overrides/extends.
   # configuration_values may be passed as an object — we jsonencode it here since the AWS
   # provider requires a string.
-  cluster_addons = {
+  cluster_addons_encoded = {
     for k, v in merge(local.default_cluster_addons, var.cluster_addons) :
     k => merge(v, lookup(v, "configuration_values", null) == null ? {} : {
       configuration_values = try(tostring(v.configuration_values), jsonencode(v.configuration_values))
     }) if v != null
+  }
+
+  # The CoreDNS addon defaults to annotation eks.amazonaws.com/compute-type=ec2, which
+  # refuses Fargate. computeType=Fargate is that addon's switch. Leave a caller-supplied
+  # compute type (or the same annotation) alone, and do not touch other addons.
+  coredns_configuration_object = try(jsondecode(local.cluster_addons_encoded.coredns.configuration_values), null)
+  coredns_compute_type_set = (
+    try(local.coredns_configuration_object.computeType, null) != null ||
+    try(local.coredns_configuration_object.podAnnotations["eks.amazonaws.com/compute-type"], null) != null
+  )
+
+  cluster_addons = {
+    for k, v in local.cluster_addons_encoded : k => (
+      var.karpenter_on_fargate && k == "coredns" && !local.coredns_compute_type_set ? merge(v, {
+        configuration_values = jsonencode(merge(coalesce(local.coredns_configuration_object, {}), {
+          computeType = "Fargate"
+        }))
+      }) : v
+    )
   }
 }
 
@@ -116,7 +135,9 @@ module "eks" {
   authentication_mode                      = "API_AND_CONFIG_MAP"
   access_entries                           = local.access_entries
   enable_cluster_creator_admin_permissions = false
-  eks_managed_node_groups = {
+  # Empty fargate_profiles does not create a profile or a pod execution role:
+  # the module for_eachs this map (terraform-aws-modules/eks/aws 20.35.0).
+  eks_managed_node_groups = var.karpenter_on_fargate ? {} : {
     karpenter = {
       instance_types = local.instance_types
       ami_type       = local.ami_type
@@ -148,6 +169,27 @@ module "eks" {
       }
     }
   }
+  fargate_profiles = var.karpenter_on_fargate ? {
+    karpenter = {
+      subnet_ids = local.subnets.private.ids
+      selectors = [
+        {
+          namespace = "kube-system"
+          labels = {
+            "app.kubernetes.io/name" = "karpenter"
+          }
+        },
+        # CoreDNS has to be up before any Karpenter EC2 node exists: the controller
+        # chart uses dnsPolicy ClusterFirst.
+        {
+          namespace = "kube-system"
+          labels = {
+            "k8s-app" = "kube-dns"
+          }
+        },
+      ]
+    }
+  } : {}
 
   node_security_group_tags = merge(local.tags, {
     "kubernetes.io/cluster/${local.cluster_name}" = null

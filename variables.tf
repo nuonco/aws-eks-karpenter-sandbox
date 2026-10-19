@@ -346,6 +346,12 @@ variable "node_group_ami_release_version" {
 }
 
 # karpenter
+variable "karpenter_on_fargate" {
+  type        = bool
+  default     = false
+  description = "Run the Karpenter controller on Fargate instead of the managed node group. Default false keeps the managed node group."
+}
+
 variable "karpenter_version" {
   type        = string
   default     = "1.4.0"
