@@ -79,16 +79,22 @@ moved {
   to   = aws_iam_role_policy_attachment.karpenter_node["AmazonSSMManagedInstanceCore"]
 }
 
-# EKS deletes the access entry it created for a managed node group when that
-# node group is deleted. Create ours only then, for the same role.
+# The node group already has an access entry for this role. Adopt that entry
+# when the node group is removed instead of creating a second one.
 resource "aws_eks_access_entry" "karpenter_node" {
-  count = var.karpenter_on_fargate ? 1 : 0
+  count = var.karpenter_on_fargate && var.karpenter_remove_node_group ? 1 : 0
 
   cluster_name  = module.eks.cluster_name
   principal_arn = aws_iam_role.karpenter_node[0].arn
   type          = "EC2_LINUX"
 
   tags = local.tags
+}
+
+import {
+  for_each = var.karpenter_on_fargate && var.karpenter_remove_node_group ? toset(["karpenter_node"]) : toset([])
+  to       = aws_eks_access_entry.karpenter_node[0]
+  id       = "${local.cluster_name}:${aws_iam_role.karpenter_node[0].arn}"
 }
 
 # NOTE: we use an instance_profile because the role is immutable on the ec2nodeclass

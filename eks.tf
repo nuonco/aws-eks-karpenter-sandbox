@@ -133,7 +133,7 @@ module "eks" {
   authentication_mode                      = "API_AND_CONFIG_MAP"
   access_entries                           = local.access_entries
   enable_cluster_creator_admin_permissions = false
-  eks_managed_node_groups = var.karpenter_on_fargate ? {} : {
+  eks_managed_node_groups = var.karpenter_on_fargate && var.karpenter_remove_node_group ? {} : {
     karpenter = {
       instance_types = local.instance_types
       ami_type       = local.ami_type
