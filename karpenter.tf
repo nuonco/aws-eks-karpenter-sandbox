@@ -14,8 +14,6 @@ locals {
 }
 
 data "aws_iam_policy_document" "karpenter_node_assume_role" {
-  count = var.karpenter_on_fargate ? 1 : 0
-
   statement {
     sid     = "EKSNodeAssumeRole"
     actions = ["sts:AssumeRole"]
@@ -28,56 +26,75 @@ data "aws_iam_policy_document" "karpenter_node_assume_role" {
 }
 
 resource "aws_iam_role" "karpenter_node" {
-  count = var.karpenter_on_fargate ? 1 : 0
+  count = 1
 
   name_prefix           = "karpenter-node-"
-  assume_role_policy    = one(data.aws_iam_policy_document.karpenter_node_assume_role[*].json)
+  assume_role_policy    = data.aws_iam_policy_document.karpenter_node_assume_role.json
   force_detach_policies = true
 
   tags = local.tags
+
+  # Existing installs keep the node group role name. name_prefix is ForceNew.
+  lifecycle {
+    ignore_changes = [name, name_prefix]
+  }
+}
+
+# Adopts the role the managed node group created, so enabling Fargate does not
+# delete the role already attached to Karpenter nodes.
+moved {
+  from = module.eks.module.eks_managed_node_group["karpenter"].aws_iam_role.this[0]
+  to   = aws_iam_role.karpenter_node[0]
 }
 
 resource "aws_iam_role_policy_attachment" "karpenter_node" {
   for_each = {
-    for k, v in {
-      AmazonEKSWorkerNodePolicy          = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-      AmazonEKS_CNI_Policy               = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-      AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-      AmazonSSMManagedInstanceCore       = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-    } : k => v if var.karpenter_on_fargate
+    AmazonEKSWorkerNodePolicy          = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+    AmazonEKS_CNI_Policy               = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+    AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+    AmazonSSMManagedInstanceCore       = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   }
 
-  role       = one(aws_iam_role.karpenter_node[*].name)
+  role       = aws_iam_role.karpenter_node[0].name
   policy_arn = each.value
 }
 
-# the karpenter module can't create an access entry for an external node role
+moved {
+  from = module.eks.module.eks_managed_node_group["karpenter"].aws_iam_role_policy_attachment.this["AmazonEKSWorkerNodePolicy"]
+  to   = aws_iam_role_policy_attachment.karpenter_node["AmazonEKSWorkerNodePolicy"]
+}
+
+moved {
+  from = module.eks.module.eks_managed_node_group["karpenter"].aws_iam_role_policy_attachment.this["AmazonEKS_CNI_Policy"]
+  to   = aws_iam_role_policy_attachment.karpenter_node["AmazonEKS_CNI_Policy"]
+}
+
+moved {
+  from = module.eks.module.eks_managed_node_group["karpenter"].aws_iam_role_policy_attachment.this["AmazonEC2ContainerRegistryReadOnly"]
+  to   = aws_iam_role_policy_attachment.karpenter_node["AmazonEC2ContainerRegistryReadOnly"]
+}
+
+moved {
+  from = module.eks.module.eks_managed_node_group["karpenter"].aws_iam_role_policy_attachment.additional["additional"]
+  to   = aws_iam_role_policy_attachment.karpenter_node["AmazonSSMManagedInstanceCore"]
+}
+
+# EKS deletes the access entry it created for a managed node group when that
+# node group is deleted. Create ours only then, for the same role.
 resource "aws_eks_access_entry" "karpenter_node" {
   count = var.karpenter_on_fargate ? 1 : 0
 
   cluster_name  = module.eks.cluster_name
-  principal_arn = one(aws_iam_role.karpenter_node[*].arn)
+  principal_arn = aws_iam_role.karpenter_node[0].arn
   type          = "EC2_LINUX"
 
   tags = local.tags
 }
 
-locals {
-  karpenter_node_iam_role_name = concat(
-    aws_iam_role.karpenter_node[*].name,
-    [for ng in values(module.eks.eks_managed_node_groups) : ng.iam_role_name],
-  )[0]
-  karpenter_node_iam_role_arn = concat(
-    aws_iam_role.karpenter_node[*].arn,
-    [for ng in values(module.eks.eks_managed_node_groups) : ng.iam_role_arn],
-  )[0]
-}
-
-# NOTE: we use an instance_profile because the role changes between provisions
-#       but the role is immutable on the ec2nodeclass
+# NOTE: we use an instance_profile because the role is immutable on the ec2nodeclass
 resource "aws_iam_instance_profile" "karpenter" {
   name = local.karpenter.instance_profile_name
-  role = local.karpenter_node_iam_role_name
+  role = aws_iam_role.karpenter_node[0].name
 }
 
 module "karpenter" {
@@ -89,7 +106,7 @@ module "karpenter" {
   create_access_entry = false
 
   create_node_iam_role = false
-  node_iam_role_arn    = local.karpenter_node_iam_role_arn
+  node_iam_role_arn    = aws_iam_role.karpenter_node[0].arn
 
   create_instance_profile = false
 

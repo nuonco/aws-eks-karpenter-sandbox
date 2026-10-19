@@ -160,9 +160,8 @@ module "eks" {
         "karpenter.sh/discovery" = local.karpenter.discovery_value
       }
 
-      iam_role_additional_policies = {
-        additional = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-      }
+      create_iam_role = false
+      iam_role_arn    = aws_iam_role.karpenter_node[0].arn
     }
   }
   fargate_profiles = var.karpenter_on_fargate ? {
@@ -194,6 +193,8 @@ module "eks" {
   tags = merge(local.tags, {
     "karpenter.sh/discovery" = local.karpenter.discovery_value
   })
+
+  depends_on = [aws_iam_role_policy_attachment.karpenter_node]
 }
 
 # TODO: revisit this access method
