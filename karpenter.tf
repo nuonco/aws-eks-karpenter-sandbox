@@ -13,11 +13,94 @@ locals {
   }
 }
 
-# NOTE: we use an instance_profile because the role changes between provisions
-#       but the role is immutable on the ec2nodeclass
+data "aws_iam_policy_document" "karpenter_node_assume_role" {
+  statement {
+    sid     = "EKSNodeAssumeRole"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "karpenter_node" {
+  count = 1
+
+  name_prefix           = "karpenter-node-"
+  assume_role_policy    = data.aws_iam_policy_document.karpenter_node_assume_role.json
+  force_detach_policies = true
+
+  tags = local.tags
+
+  # Existing installs keep the node group role name. name_prefix is ForceNew.
+  lifecycle {
+    ignore_changes = [name, name_prefix]
+  }
+}
+
+# Adopts the role the managed node group created, so enabling Fargate does not
+# delete the role already attached to Karpenter nodes.
+moved {
+  from = module.eks.module.eks_managed_node_group["karpenter"].aws_iam_role.this[0]
+  to   = aws_iam_role.karpenter_node[0]
+}
+
+resource "aws_iam_role_policy_attachment" "karpenter_node" {
+  for_each = {
+    AmazonEKSWorkerNodePolicy          = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+    AmazonEKS_CNI_Policy               = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+    AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+    AmazonSSMManagedInstanceCore       = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
+
+  role       = aws_iam_role.karpenter_node[0].name
+  policy_arn = each.value
+}
+
+moved {
+  from = module.eks.module.eks_managed_node_group["karpenter"].aws_iam_role_policy_attachment.this["AmazonEKSWorkerNodePolicy"]
+  to   = aws_iam_role_policy_attachment.karpenter_node["AmazonEKSWorkerNodePolicy"]
+}
+
+moved {
+  from = module.eks.module.eks_managed_node_group["karpenter"].aws_iam_role_policy_attachment.this["AmazonEKS_CNI_Policy"]
+  to   = aws_iam_role_policy_attachment.karpenter_node["AmazonEKS_CNI_Policy"]
+}
+
+moved {
+  from = module.eks.module.eks_managed_node_group["karpenter"].aws_iam_role_policy_attachment.this["AmazonEC2ContainerRegistryReadOnly"]
+  to   = aws_iam_role_policy_attachment.karpenter_node["AmazonEC2ContainerRegistryReadOnly"]
+}
+
+moved {
+  from = module.eks.module.eks_managed_node_group["karpenter"].aws_iam_role_policy_attachment.additional["additional"]
+  to   = aws_iam_role_policy_attachment.karpenter_node["AmazonSSMManagedInstanceCore"]
+}
+
+# The node group already has an access entry for this role. Adopt that entry
+# when the node group is removed instead of creating a second one.
+resource "aws_eks_access_entry" "karpenter_node" {
+  count = var.karpenter_on_fargate && var.karpenter_remove_node_group ? 1 : 0
+
+  cluster_name  = module.eks.cluster_name
+  principal_arn = aws_iam_role.karpenter_node[0].arn
+  type          = "EC2_LINUX"
+
+  tags = local.tags
+}
+
+import {
+  for_each = var.karpenter_on_fargate && var.karpenter_remove_node_group ? toset(["karpenter_node"]) : toset([])
+  to       = aws_eks_access_entry.karpenter_node[0]
+  id       = "${local.cluster_name}:${aws_iam_role.karpenter_node[0].arn}"
+}
+
+# NOTE: we use an instance_profile because the role is immutable on the ec2nodeclass
 resource "aws_iam_instance_profile" "karpenter" {
   name = local.karpenter.instance_profile_name
-  role = module.eks.eks_managed_node_groups["karpenter"].iam_role_name
+  role = aws_iam_role.karpenter_node[0].name
 }
 
 module "karpenter" {
@@ -29,7 +112,7 @@ module "karpenter" {
   create_access_entry = false
 
   create_node_iam_role = false
-  node_iam_role_arn    = module.eks.eks_managed_node_groups["karpenter"].iam_role_arn
+  node_iam_role_arn    = aws_iam_role.karpenter_node[0].arn
 
   create_instance_profile = false
 
@@ -71,6 +154,8 @@ module "karpenter" {
   depends_on = [
     module.eks,
     resource.aws_security_group_rule.runner_cluster_access,
+    aws_iam_role_policy_attachment.karpenter_node,
+    aws_eks_access_entry.karpenter_node,
   ]
 }
 
@@ -130,11 +215,11 @@ resource "helm_release" "karpenter" {
         resources : {
           requests : {
             cpu : 1
-            memory : "1Gi"
+            memory : var.karpenter_on_fargate ? "2Gi" : "1Gi"
           }
           limits : {
             cpu : 1
-            memory : "1Gi"
+            memory : var.karpenter_on_fargate ? "2Gi" : "1Gi"
           }
         }
       }
@@ -228,7 +313,8 @@ resource "kubectl_manifest" "karpenter_ec2nodeclass_default" {
   })
 
   depends_on = [
-    helm_release.karpenter
+    helm_release.karpenter,
+    aws_iam_instance_profile.karpenter,
   ]
 }
 

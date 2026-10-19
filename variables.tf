@@ -346,6 +346,18 @@ variable "node_group_ami_release_version" {
 }
 
 # karpenter
+variable "karpenter_on_fargate" {
+  type        = bool
+  default     = false
+  description = "Run the Karpenter controller on Fargate. The managed node group stays until karpenter_remove_node_group is set, so the controller can move before that group is deleted."
+}
+
+variable "karpenter_remove_node_group" {
+  type        = bool
+  default     = false
+  description = "Delete the Karpenter controller node group. Set only after karpenter_on_fargate is applied and the controller is running on Fargate. The node IAM role is kept."
+}
+
 variable "karpenter_version" {
   type        = string
   default     = "1.4.0"

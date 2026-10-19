@@ -81,11 +81,28 @@ locals {
   # null entries in var.cluster_addons remove a default; everything else overrides/extends.
   # configuration_values may be passed as an object — we jsonencode it here since the AWS
   # provider requires a string.
-  cluster_addons = {
+  cluster_addons_encoded = {
     for k, v in merge(local.default_cluster_addons, var.cluster_addons) :
     k => merge(v, lookup(v, "configuration_values", null) == null ? {} : {
       configuration_values = try(tostring(v.configuration_values), jsonencode(v.configuration_values))
     }) if v != null
+  }
+
+  # CoreDNS addon defaults to compute-type=ec2; switch to Fargate unless the caller set one.
+  coredns_configuration_object = try(jsondecode(local.cluster_addons_encoded.coredns.configuration_values), null)
+  coredns_compute_type_set = (
+    try(local.coredns_configuration_object.computeType, null) != null ||
+    try(local.coredns_configuration_object.podAnnotations["eks.amazonaws.com/compute-type"], null) != null
+  )
+
+  cluster_addons = {
+    for k, v in local.cluster_addons_encoded : k => (
+      var.karpenter_on_fargate && k == "coredns" && !local.coredns_compute_type_set ? merge(v, {
+        configuration_values = jsonencode(merge(coalesce(local.coredns_configuration_object, {}), {
+          computeType = "Fargate"
+        }))
+      }) : v
+    )
   }
 }
 
@@ -116,7 +133,7 @@ module "eks" {
   authentication_mode                      = "API_AND_CONFIG_MAP"
   access_entries                           = local.access_entries
   enable_cluster_creator_admin_permissions = false
-  eks_managed_node_groups = {
+  eks_managed_node_groups = var.karpenter_on_fargate && var.karpenter_remove_node_group ? {} : {
     karpenter = {
       instance_types = local.instance_types
       ami_type       = local.ami_type
@@ -143,11 +160,34 @@ module "eks" {
         "karpenter.sh/discovery" = local.karpenter.discovery_value
       }
 
-      iam_role_additional_policies = {
-        additional = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-      }
+      create_iam_role = false
+      # waits for the node role policy attachments
+      iam_role_arn = one([
+        for k, _ in aws_iam_role_policy_attachment.karpenter_node : aws_iam_role.karpenter_node[0].arn
+        if k == "AmazonEKSWorkerNodePolicy"
+      ])
     }
   }
+  fargate_profiles = var.karpenter_on_fargate ? {
+    karpenter = {
+      subnet_ids = local.subnets.private.ids
+      selectors = [
+        {
+          namespace = "kube-system"
+          labels = {
+            "app.kubernetes.io/name" = "karpenter"
+          }
+        },
+        # controller uses ClusterFirst DNS before any Karpenter node exists
+        {
+          namespace = "kube-system"
+          labels = {
+            "k8s-app" = "kube-dns"
+          }
+        },
+      ]
+    }
+  } : {}
 
   node_security_group_tags = merge(local.tags, {
     "kubernetes.io/cluster/${local.cluster_name}" = null
