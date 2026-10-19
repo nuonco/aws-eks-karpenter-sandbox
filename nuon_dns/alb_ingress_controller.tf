@@ -81,6 +81,8 @@ resource "helm_release" "alb_ingress_controller" {
   # toleration require to allow these to run on the main karpenter mng ng
   values = [
     yamlencode({
+      vpcId  = var.vpc_id
+      region = var.region
       tolerations = [
         {
           key    = "CriticalAddonsOnly"
