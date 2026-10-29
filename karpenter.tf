@@ -312,6 +312,10 @@ resource "kubectl_manifest" "karpenter_ec2nodeclass_default" {
     } : {})
   })
 
+  # on destroy, block until karpenter has terminated this nodeclass's nodes, so
+  # the controller isn't uninstalled while its finalizers are still pending
+  wait = true
+
   depends_on = [
     helm_release.karpenter,
     aws_iam_instance_profile.karpenter,
@@ -391,6 +395,8 @@ resource "kubectl_manifest" "karpenter_nodepool_default" {
     }
     spec = local.default_nodepool_spec
   })
+
+  wait = true
 
   depends_on = [
     kubectl_manifest.karpenter_ec2nodeclass_default,

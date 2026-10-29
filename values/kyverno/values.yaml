@@ -51,6 +51,14 @@ global:
 webhooksCleanup:
   image:
     repository: bitnamilegacy/kubectl
+  # the post-delete remove-configmap hook doesn't fall back to global.tolerations
+  tolerations:
+  - effect: NoSchedule
+    key: CriticalAddonsOnly
+    value: "true"
+  - effect: NoSchedule
+    key: karpenter.sh/controller
+    value: "true"
 policyReportsCleanup:
   image:
     repository: bitnamilegacy/kubectl
