@@ -1,0 +1,66 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-maintenance-deletes
+  annotations:
+    policies.kyverno.io/title: Restrict Destructive Deletes by the Maintenance Role
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Namespace, CustomResourceDefinition, ClusterPolicy, Policy
+    kyverno.io/kyverno-version: 1.13.0
+    policies.kyverno.io/minversion: 1.10.0
+    kyverno.io/kubernetes-version: "1.32"
+    policies.kyverno.io/description: >-
+      The maintenance role runs day-2 component deploys and actions, including ad-hoc
+      actions. Deleting a namespace or a CRD takes every workload or custom resource
+      in it down with it, so the maintenance group may not do either. Namespace and
+      CRD teardown belongs to the deprovision role. The maintenance group also may not
+      change or remove Kyverno policies, so it cannot lift this restriction itself.
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: deny-namespace-delete
+      match:
+        any:
+        - resources:
+            kinds:
+              - Namespace
+            operations:
+              - DELETE
+          subjects:
+            - kind: Group
+              name: maintenance
+      validate:
+        message: "The maintenance role may not delete namespaces. Use the deprovision role."
+        deny: {}
+    - name: deny-crd-delete
+      match:
+        any:
+        - resources:
+            kinds:
+              - apiextensions.k8s.io/v1/CustomResourceDefinition
+            operations:
+              - DELETE
+          subjects:
+            - kind: Group
+              name: maintenance
+      validate:
+        message: "The maintenance role may not delete CustomResourceDefinitions. Use the deprovision role."
+        deny: {}
+    - name: deny-policy-changes
+      match:
+        any:
+        - resources:
+            kinds:
+              - kyverno.io/v1/ClusterPolicy
+              - kyverno.io/v1/Policy
+            operations:
+              - UPDATE
+              - DELETE
+          subjects:
+            - kind: Group
+              name: maintenance
+      validate:
+        message: "The maintenance role may not change or remove Kyverno policies."
+        deny: {}

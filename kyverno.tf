@@ -5,6 +5,7 @@ locals {
     default_policies = [
       "${path.module}/values/kyverno/policies/restrict-binding-system-groups.yaml",
       "${path.module}/values/kyverno/policies/restrict-secret-role-verbs.yaml",
+      "${path.module}/values/kyverno/policies/restrict-maintenance-deletes.yaml",
     ]
   }
 }
